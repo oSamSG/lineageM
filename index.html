@@ -2310,4 +2310,225 @@ window.DB=DB;window.G=Game;
 
 document.addEventListener('DOMContentLoaded',()=>Game.init());
 </script>
+
+
+<!-- === V31 MAP CODEX REBUILD === -->
+<script>
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmt=n=>Math.floor(Number(n)||0).toLocaleString();
+  const statName={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',dmg:'傷害',hit:'命中',dr:'減傷',mr:'MR',spd:'速度',hp:'HP',mp:'MP',ac:'AC'};
+  const itemName=id=>(DB.item&&DB.item[id]&&DB.item[id].name)||id;
+  const uniq=a=>[...new Set((a||[]).filter(Boolean))];
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
+
+  function setTitle(){
+    document.title='天堂M Core Rebuild V31｜地圖圖鑑重製版';
+    const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V31';
+    const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V31';
+    const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V31 地圖圖鑑重製：探索、怪物登錄、Boss登錄、地圖完成度、收藏獎勵與紅點提示。';
+  }
+
+  const MAP_REWARDS={
+    talking:{hp:30},gludin:{ac:-1},giran:{dmg:1},dragon:{dmg:2,hit:1},toi:{dr:1,mr:5},lastabad:{dmg:2,dr:1},antharas:{hp:120,dr:2},valakas:{dmg:3,hp:80}
+  };
+  function mapReward(map){
+    if(MAP_REWARDS[map.id]) return MAP_REWARDS[map.id];
+    const lv=Number(map.min)||1;
+    if(/龍|安塔|巴拉|法利|林德|四龍/i.test(map.name+' '+map.id)) return {dmg:2,dr:1,hp:80};
+    if(/傲慢|支配|遺忘|地獄|拉斯塔/i.test(map.name+' '+map.id)) return {dmg:1,dr:1,mr:5};
+    if(lv>=75) return {dmg:1,dr:1};
+    if(lv>=45) return {hit:1,hp:50};
+    if(lv>=20) return {hp:30};
+    return {hp:15};
+  }
+  function statLine(st){return Object.entries(st||{}).map(([k,v])=>`${statName[k]||k}${v>=0?'+':''}${v}`).join('、')||'無';}
+  function mapBossNames(map){
+    const mName=(map.name||'')+' '+(map.id||'');
+    const fromMap=(map.mons||[]).filter(n=>/王|Boss|BOSS|龍|安塔|巴拉|法利|林德|吉爾|巴風|死亡騎士|巫妖|木乃伊|吸血鬼|巨蟻|不死鳥|惡魔|克特|賽尼斯/.test(n));
+    const fromBoss=(DB.bosses||[]).filter(b=>{
+      const z=(b.zone||'')+' '+(b.name||'');
+      return mName.includes(b.name)||z.includes(map.id)||mName.includes(b.zone||'__none__')|| (map.min>=70 && Math.abs((b.lv||0)-map.min)<12);
+    }).map(b=>b.name);
+    return uniq(fromMap.concat(fromBoss)).slice(0,8);
+  }
+  function mapMonsters(map){return uniq(map.mons||[]);}
+  function mapDrops(map){return uniq((map.drops||[]).concat(map.materialDrops||[]));}
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(!this.s) return;
+    this.s.version='core_rebuild_v31_map_codex';
+    this.s.codexMap=this.s.codexMap||{};      // mapId => exploration points
+    this.s.mapDiscovered=this.s.mapDiscovered||{}; // mapId => true
+    this.s.mapClaimed=this.s.mapClaimed||{};  // mapId => true
+    this.s.codexMon=this.s.codexMon||{};      // monsterName => kills
+    this.s.codexBoss=this.s.codexBoss||{};    // bossName => kills
+    this.s.claimed=this.s.claimed||{};
+    this.s.bookBonus=this.s.bookBonus||{map:{},monster:{},boss:{}};
+    if(this.s.map) this.discoverMapV31(this.s.map,0,false);
+  };
+
+  Game.discoverMapV31=function(mapId,point=1,logIt=true){
+    if(!this.s) return;
+    const m=(DB.maps||[]).find(x=>x.id===mapId); if(!m) return;
+    this.s.mapDiscovered=this.s.mapDiscovered||{};
+    this.s.codexMap=this.s.codexMap||{};
+    const first=!this.s.mapDiscovered[mapId];
+    this.s.mapDiscovered[mapId]=true;
+    this.s.codexMap[mapId]=clamp((this.s.codexMap[mapId]||0)+(point||0),0,100);
+    if(first&&logIt) this.log('地圖圖鑑已發現：'+m.name,'green');
+  };
+  Game.mapProgressV31=function(m){
+    const explore=clamp(this.s.codexMap?.[m.id]||0,0,100);
+    const mons=mapMonsters(m), bosses=mapBossNames(m);
+    const monDone=mons.length?mons.filter(n=>(this.s.codexMon?.[n]||0)>0).length/mons.length*100:100;
+    const bossDone=bosses.length?bosses.filter(n=>(this.s.codexBoss?.[n]||0)>0).length/bosses.length*100:100;
+    const total=Math.floor(explore*0.5+monDone*0.35+bossDone*0.15);
+    return {explore,monDone,bossDone,total,mons,bosses};
+  };
+  Game.mapBookReadyV31=function(m){return this.mapProgressV31(m).total>=100;};
+  Game.mapBookBonusV31=function(){
+    const bonus={};
+    const add=(st)=>Object.entries(st||{}).forEach(([k,v])=>bonus[k]=(bonus[k]||0)+v);
+    (DB.maps||[]).forEach(m=>{if(this.s.mapClaimed?.[m.id]) add(mapReward(m));});
+    return bonus;
+  };
+
+  const oldTotal=Game.total;
+  Game.total=function(){
+    const st=oldTotal.call(this);
+    const b=this.mapBookBonusV31?this.mapBookBonusV31():{};
+    Object.entries(b).forEach(([k,v])=>st[k]=(st[k]||0)+v);
+    return st;
+  };
+
+  const oldSpawn=Game.spawn;
+  Game.spawn=function(){
+    oldSpawn.call(this);
+    const m=this.s&&this.s.mon, map=this.map();
+    if(m&&map){m.map=map.id; this.discoverMapV31(map.id,1,false);}
+  };
+  const oldKill=Game.kill;
+  Game.kill=function(m,bonus){
+    const mapId=(m&&m.map)||this.s.map;
+    if(m&&m.name){
+      this.s.codexMon=this.s.codexMon||{};
+      this.s.codexMon[m.name]=(this.s.codexMon[m.name]||0)+1;
+      if(m.boss){this.s.codexBoss=this.s.codexBoss||{}; this.s.codexBoss[m.name]=(this.s.codexBoss[m.name]||0)+1;}
+    }
+    this.discoverMapV31(mapId,2,false);
+    oldKill.call(this,m,bonus);
+  };
+  const oldBoss=Game.boss;
+  Game.boss=function(id){
+    const b=(DB.bosses||[]).find(x=>x.id===id);
+    oldBoss.call(this,id);
+    if(b){this.s.codexBoss=this.s.codexBoss||{};this.s.codexBoss[b.name]=(this.s.codexBoss[b.name]||0)+1;}
+  };
+
+  const oldBind=Game.bind;
+  Game.bind=function(){
+    oldBind.call(this);
+    const sel=this.$('mapSelect');
+    if(sel){
+      sel.onchange=e=>{this.ensure();this.s.map=e.target.value;this.s.mon=null;this.discoverMapV31(this.s.map,3,true);this.save(false);this.render();};
+    }
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='goMap'){
+      this.ensure();
+      if((DB.maps||[]).some(m=>m.id===arg)){this.s.map=arg;this.s.mon=null;this.discoverMapV31(arg,3,true);this.save(false);this.render();}
+      return;
+    }
+    if(a==='claimMapBookV31'){
+      this.ensure();
+      const m=(DB.maps||[]).find(x=>x.id===arg); if(!m) return;
+      if(!this.mapBookReadyV31(m)){alert('地圖完成度尚未達 100%');return;}
+      if(this.s.mapClaimed[arg]){alert('此地圖獎勵已領取');return;}
+      this.s.mapClaimed[arg]=true;
+      this.addItem('m18_powder',80);
+      if(DB.item.v23_pattern_stone) this.addItem('v23_pattern_stone',2);
+      this.log('地圖圖鑑完成：'+m.name+'｜永久加成：'+statLine(mapReward(m)),'gold');
+      this.render();this.save(false);return;
+    }
+    if(a==='mapBookFilterV31'){this.mapBookFilterV31=arg||'all';this.renderTab();return;}
+    if(a==='mapBookSortV31'){this.mapBookSortV31=arg||'progress';this.renderTab();return;}
+    return oldAction.call(this,a,arg,b);
+  };
+
+  Game.viewMapBookV23=function(){
+    this.ensure();
+    const filter=this.mapBookFilterV31||'all', sort=this.mapBookSortV31||'progress';
+    const filters=[['all','全部'],['current','目前地圖'],['undiscovered','未探索'],['ready','可領獎'],['claimed','已完成']];
+    const sorts=[['progress','完成度'],['level','等級'],['name','名稱']];
+    let maps=(DB.maps||[]).slice();
+    maps=maps.filter(m=>{
+      const p=this.mapProgressV31(m), found=!!this.s.mapDiscovered?.[m.id], ready=this.mapBookReadyV31(m), claimed=!!this.s.mapClaimed?.[m.id];
+      if(filter==='current') return m.id===this.s.map;
+      if(filter==='undiscovered') return !found;
+      if(filter==='ready') return ready&&!claimed;
+      if(filter==='claimed') return claimed;
+      return true;
+    });
+    maps.sort((a,b)=>{
+      if(sort==='level') return (a.min||0)-(b.min||0);
+      if(sort==='name') return String(a.name).localeCompare(String(b.name),'zh-Hant');
+      return this.mapProgressV31(b).total-this.mapProgressV31(a).total;
+    });
+    const all=DB.maps||[];
+    const discovered=all.filter(m=>this.s.mapDiscovered?.[m.id]).length;
+    const claimed=all.filter(m=>this.s.mapClaimed?.[m.id]).length;
+    const ready=all.filter(m=>this.mapBookReadyV31(m)&&!this.s.mapClaimed?.[m.id]).length;
+    const avg=all.length?Math.floor(all.reduce((a,m)=>a+this.mapProgressV31(m).total,0)/all.length):0;
+    const rows=maps.map(m=>{
+      const p=this.mapProgressV31(m), found=!!this.s.mapDiscovered?.[m.id], claimed=!!this.s.mapClaimed?.[m.id], ready=this.mapBookReadyV31(m)&&!claimed;
+      const drops=mapDrops(m).slice(0,10).map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無</span>';
+      const monList=p.mons.map(n=>`<span class="pill ${(this.s.codexMon?.[n]||0)>0?'green':''}">${esc(n)} ${this.s.codexMon?.[n]||0}</span>`).join('')||'<span class="muted">無怪物資料</span>';
+      const bossList=p.bosses.map(n=>`<span class="pill ${(this.s.codexBoss?.[n]||0)>0?'red':''}">${esc(n)} ${this.s.codexBoss?.[n]||0}</span>`).join('')||'<span class="muted">無 Boss</span>';
+      return `<div class="map-v31-card ${claimed?'done':ready?'ready':found?'active':'locked'}">
+        <div class="row"><div><b class="gold">${esc(m.name)}</b> <span class="pill">Lv.${m.min}-${m.max}</span>${claimed?' <span class="pill green">已完成</span>':ready?' <span class="pill red">可領獎</span>':found?' <span class="pill blue">已探索</span>':' <span class="pill muted">未探索</span>'}<br><span class="muted">永久獎勵：${statLine(mapReward(m))}</span></div><div><button data-act="goMap" data-arg="${esc(m.id)}" ${m.id===this.s.map?'disabled':''}>前往</button> <button data-act="claimMapBookV31" data-arg="${esc(m.id)}" ${ready?'':'disabled'}>領取</button></div></div>
+        <div class="map-v31-progress"><span style="width:${p.total}%"></span><b>${p.total}%</b></div>
+        <div class="map-v31-sub"><span>探索 ${p.explore}/100</span><span>怪物 ${Math.round(p.monDone)}%</span><span>Boss ${Math.round(p.bossDone)}%</span></div>
+        <details><summary>怪物 / Boss / 掉落</summary><div class="drop-box"><b>怪物</b>${monList}</div><div class="drop-box"><b>Boss</b>${bossList}</div><div class="drop-box"><b>掉落</b>${drops}</div></details>
+      </div>`;
+    }).join('');
+    return this.hero('地圖圖鑑 V31','重製為探索、怪物登錄、Boss登錄、掉落資訊與永久獎勵。')+
+      this.statCards([['地圖數',all.length,'gold'],['已探索',discovered+'/'+all.length,'green'],['可領獎',ready,'red'],['已完成',claimed,'blue'],['平均完成度',avg+'%','purple'],['目前地圖',esc(this.map().name),'cyan']])+
+      `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="mapBookFilterV31" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="mapBookSortV31" data-arg="${id}">排序：${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${rows||'<p class="muted">沒有符合條件的地圖</p>'}</div>`;
+  };
+
+  const oldRed=Game.redDots;
+  Game.redDots=function(){
+    const r=oldRed?oldRed.call(this):{};
+    if(this.s&&(DB.maps||[]).some(m=>this.mapBookReadyV31&&this.mapBookReadyV31(m)&&!this.s.mapClaimed?.[m.id])) r.mapBook=1;
+    return r;
+  };
+
+  const oldDash=Game.viewDash;
+  Game.viewDash=function(){
+    const base=oldDash.call(this);
+    const all=DB.maps||[], claimed=all.filter(m=>this.s.mapClaimed?.[m.id]).length;
+    const avg=all.length?Math.floor(all.reduce((a,m)=>a+(this.mapProgressV31?this.mapProgressV31(m).total:0),0)/all.length):0;
+    return base+`<div class="card"><b class="gold">V31 地圖圖鑑重製</b><br><span class="muted">地圖圖鑑已改為探索 / 怪物 / Boss 三段完成度，支援前往地圖、紅點提示、領取永久能力加成。目前完成 ${claimed}/${all.length}，平均完成度 ${avg}%。</span></div>`;
+  };
+  const oldAudit=Game.viewAudit;
+  Game.viewAudit=function(){
+    const all=DB.maps||[], noMons=all.filter(m=>!(m.mons||[]).length), noDrops=all.filter(m=>!(m.drops||[]).length&&!(m.materialDrops||[]).length);
+    return oldAudit.call(this)+`<div class="card"><b class="gold">V31 地圖圖鑑檢查</b><br><span class="muted">地圖 ${all.length}｜無怪物資料 ${noMons.length}｜無掉落資料 ${noDrops.length}｜圖鑑資料結構：codexMap / mapDiscovered / mapClaimed / codexMon / codexBoss。</span></div>`;
+  };
+
+  const css=document.createElement('style');
+  css.textContent=`
+    .map-v31-card{background:#081120;border:1px solid #26364e;border-radius:13px;padding:12px}.map-v31-card.active{border-color:#60a5fa}.map-v31-card.ready{border-color:#fca5a5;background:#1a1014}.map-v31-card.done{border-color:var(--gold);background:#16180d}.map-v31-card.locked{opacity:.72;border-style:dashed}.map-v31-progress{height:22px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:10px 0}.map-v31-progress span{display:block;height:100%;background:linear-gradient(90deg,#1e3a8a,#22c55e,#facc15)}.map-v31-progress b{position:absolute;inset:0;text-align:center;line-height:20px;font-size:12px;text-shadow:1px 1px 2px #000}.map-v31-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:var(--muted);font-size:12px;margin-bottom:8px}.map-v31-card details{margin-top:8px}.map-v31-card summary{cursor:pointer;color:var(--gold)}.pill.blue{color:#93c5fd;border-color:#2563eb}.pill.red{color:#fca5a5;border-color:#7f1d1d}.pill.green{color:#86efac;border-color:#166534}.pill.muted{color:var(--muted)}`;
+  document.head.appendChild(css);
+  setTitle();
+})();
+</script>
+
 </body></html>
