@@ -2893,6 +2893,191 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   document.title='天堂M Core Rebuild V33｜已裝備道具販售保護版';
 })();
 
+
+
+/* === V34 DROP / CRAFT JOB DISPLAY UPGRADE ===
+   1) 全站版本號更新為 V34
+   2) 怪物掉落優化：依地圖等級/類型建立權重掉落池，掉落表顯示更完整
+   3) 製作道具顯示可使用職業；武器依武器類型判斷，防具/飾品預設全職業
+*/
+(function(){
+  const esc=(typeof E==='function')?E:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const fmt=n=>Math.floor(n||0).toLocaleString();
+  const RANK_VAL={N:1,R:2,SR:3,SSR:4,L:5,M:6};
+  const RANK_NAME={N:'一般',R:'高級',SR:'稀有',SSR:'英雄',L:'傳說',M:'神話'};
+  const ARMOR_TYPES=['helmet','tshirt','armor','cloak','gloves','boots'];
+  const ACC_TYPES=['amulet','belt','earring','ring','rune','seal','relic'];
+  const EQUIP_TYPES=['weapon'].concat(ARMOR_TYPES,ACC_TYPES);
+  const TYPE_NAME={weapon:'武器',helmet:'頭盔',tshirt:'內衣',armor:'盔甲',cloak:'斗篷',gloves:'手套',boots:'鞋子',amulet:'項鍊',belt:'腰帶',earring:'耳環',ring:'戒指',rune:'符石',seal:'印章',relic:'聖物',book:'技能書',material:'材料',scroll:'卷軸',potion:'藥水',box:'箱子',buff:'道具',elixir:'萬能藥'};
+
+  document.title='天堂M Core Rebuild V34｜掉落與製作職業標示版';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V34：怪物掉落物品優化、製作道具職業可用性顯示、版本號統一更新。';
+
+  Game.versionLabel='V34';
+  const oldEnsureV34=Game.ensure;
+  Game.ensure=function(){
+    oldEnsureV34.call(this);
+    if(this.s) this.s.version='core_rebuild_v34_drop_craft_job';
+  };
+
+  Game.classListV34=function(){return Object.values(DB.classes||{});};
+  Game.classNamesForItemV34=function(d){
+    if(!d) return ['未知'];
+    if(d.allowedClasses&&Array.isArray(d.allowedClasses)) return d.allowedClasses.map(id=>DB.classes[id]?.name||id);
+    if(d.type==='weapon'){
+      const arr=this.classListV34().filter(c=>(c.weapons||[]).includes(d.weapon)).map(c=>c.name);
+      return arr.length?arr:['未設定'];
+    }
+    if(ARMOR_TYPES.includes(d.type)||ACC_TYPES.includes(d.type)) return ['全職業'];
+    if(d.type==='book'&&d.skill){
+      const sk=DB.skills[d.skill]; return sk&&DB.classes[sk.classId]?[DB.classes[sk.classId].name]:['職業技能書'];
+    }
+    return ['全職業'];
+  };
+  Game.jobLineV34=function(d){
+    const names=this.classNamesForItemV34(d);
+    const usable=this.canUseByClass?this.canUseByClass(d):(d.type!=='weapon'||(this.cls().weapons||[]).includes(d.weapon));
+    return `<div class="job-line"><span class="pill ${usable?'job-ok':'job-no'}">目前職業：${usable?'可使用':'不可使用'}</span>${names.map(n=>`<span class="pill ${usable||n==='全職業'?'job-ok':'job-no'}">${esc(n)}</span>`).join('')}</div>`;
+  };
+
+  function validItem(id){return DB.item&&DB.item[id];}
+  function addPool(pool,id,weight,qtyMin=1,qtyMax=1,tag='一般'){
+    if(validItem(id)) pool.push({id,weight,qtyMin,qtyMax,tag});
+  }
+  function byType(type,rank){
+    return Object.values(DB.item||{}).filter(d=>d.type===type&&(!rank||d.rank===rank)).map(d=>d.id);
+  }
+  function pickOne(arr){return arr&&arr.length?arr[Math.floor(Math.random()*arr.length)]:null;}
+  Game.buildDropPoolV34=function(map){
+    const pool=[]; const lv=map?.min||1; const name=(map?.name||'')+' '+(map?.id||'');
+    (map?.drops||[]).forEach(id=>{const d=DB.item[id]; if(!d) return; const rank=RANK_VAL[d.rank||'N']||1; addPool(pool,id,Math.max(1,20-rank*3),1,1,'地圖原始掉落');});
+    (map?.materialDrops||[]).forEach(id=>{const d=DB.item[id]; if(!d) return; const rank=RANK_VAL[d.rank||'N']||1; addPool(pool,id,Math.max(2,34-rank*4),1,rank>=4?1:3,'地圖材料');});
+    ['potion_red','potion_orange','scroll_weapon','scroll_armor','m18_adena_pouch','m18_powder'].forEach((id,i)=>addPool(pool,id,lv<40?18-i*2:10-i,1,id.includes('potion')?3:1,'基礎補給'));
+    const rank=lv>=85?'L':lv>=70?'SSR':lv>=50?'SR':lv>=25?'R':'N';
+    const weapon=pickOne(byType('weapon',rank)); if(weapon) addPool(pool,weapon,lv>=70?2:4,1,1,'等級武器掉落');
+    const armor=pickOne(Object.values(DB.item||{}).filter(d=>ARMOR_TYPES.includes(d.type)&&d.rank===rank).map(d=>d.id)); if(armor) addPool(pool,armor,lv>=70?2:5,1,1,'等級防具掉落');
+    const acc=pickOne(Object.values(DB.item||{}).filter(d=>ACC_TYPES.includes(d.type)&&d.rank===rank).map(d=>d.id)); if(acc) addPool(pool,acc,lv>=70?1:3,1,1,'等級飾品掉落');
+    if(/龍|安塔|巴拉|法利|林德|巢穴|四龍/i.test(name)){
+      ['m18_dragon_scale_earth','m18_dragon_scale_water','m18_dragon_scale_fire','m18_dragon_scale_wind','m18_dragon_blood','m18_dragon_heart','m18_dragon_metal'].forEach((id,i)=>addPool(pool,id,i<4?9:3,1,i<4?2:1,'四龍材料'));
+    }
+    if(/傲慢|支配|遺忘|古代|地獄|拉斯塔/i.test(name)){
+      ['m18_hero_scroll_piece','m18_legend_scroll_piece','m18_relic_piece','m18_ancient_gem','m18_ancient_leather','m18_ancient_silk'].forEach((id,i)=>addPool(pool,id,i<3?6:4,1,1,'高階秘笈/古代材料'));
+    }
+    if(/妖精|森林|伊娃|海音|象牙|魔法/i.test(name)){
+      ['m18_magic_cloth','m18_magic_gem','m18_crystal','m18_holy_water','m18_holy_crystal'].forEach((id,i)=>addPool(pool,id,8-i,1,2,'魔法/精靈材料'));
+    }
+    const seen=new Set();
+    return pool.filter(x=>{const k=x.id+'|'+x.tag; if(seen.has(k)) return false; seen.add(k); return true;});
+  };
+  Game.rollDropV34=function(map,boss){
+    const pool=this.buildDropPoolV34(map); if(!pool.length) return null;
+    const total=pool.reduce((a,x)=>a+(x.weight||1),0); let r=Math.random()*total;
+    for(const x of pool){r-=x.weight||1; if(r<=0){return x;}}
+    return pool[pool.length-1];
+  };
+  Game.dropRateV34=function(map,boss){
+    const lv=map?.min||1;
+    let rate=0.18;
+    if(lv>=25) rate=0.24;
+    if(lv>=50) rate=0.30;
+    if(lv>=70) rate=0.34;
+    if(lv>=85) rate=0.38;
+    if(boss) rate=0.75;
+    const prof=this.leafProfile?this.leafProfile():null;
+    if(prof&&prof.drop) rate*=Number(prof.drop)||1;
+    return Math.min(0.90,rate);
+  };
+
+  const oldKillV34=Game.kill;
+  Game.kill=function(m,bonus){
+    const map=this.map();
+    oldKillV34.call(this,m,bonus);
+    if(!map) return;
+    const rate=this.dropRateV34(map,m&&m.boss);
+    if(Math.random()>rate) return;
+    const drop=this.rollDropV34(map,m&&m.boss); if(!drop||!DB.item[drop.id]) return;
+    const qty=this.rand?this.rand(drop.qtyMin||1,drop.qtyMax||1):Math.floor((drop.qtyMin||1)+Math.random()*((drop.qtyMax||1)-(drop.qtyMin||1)+1));
+    this.addItem(drop.id,qty,0);
+    this.log(`V34掉落：${DB.item[drop.id].name} ×${qty}｜${drop.tag}`,'green');
+  };
+
+  Game.dropPreviewV34=function(map){
+    const pool=this.buildDropPoolV34(map);
+    const grouped={};
+    pool.forEach(x=>{const d=DB.item[x.id]; if(!d) return; const type=(d.type==='weapon')?'武器':ARMOR_TYPES.includes(d.type)?'裝備':ACC_TYPES.includes(d.type)?'飾品':d.type==='material'?'材料':d.type==='scroll'?'卷軸':d.type==='potion'?'藥水':'其他'; grouped[type]=grouped[type]||[]; grouped[type].push(d);});
+    return Object.entries(grouped).map(([type,list])=>`<div class="drop-group"><b>${esc(type)}</b><div class="pill-row">${list.slice(0,14).map(d=>`<span class="pill r-${d.rank||'N'}">${esc(d.name)}</span>`).join('')}</div></div>`).join('');
+  };
+  Game.viewHunt=function(){
+    const maps=(DB.maps||[]).map(m=>{
+      const active=this.s.map===m.id, rate=Math.round(this.dropRateV34(m,false)*100);
+      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜一般掉落率約 ${rate}%</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV34(m)}</div>`;
+    }).join('');
+    return (this.hero?this.hero('狩獵 / 怪物掉落 V34','依地圖等級、地區屬性、Boss 類型建立權重掉落池；掉落表已分類顯示。'):'<h3 class="title">狩獵 / 怪物掉落 V34</h3>')+
+      (this.statCards?this.statCards([['地圖數',(DB.maps||[]).length,'blue'],['怪物種類',new Set((DB.maps||[]).flatMap(m=>m.mons||[])).size,'red'],['目前地圖',esc(this.map().name),'gold'],['今日擊殺',this.s.daily.kills||0,'green']]):'')+
+      `<div class="card"><b class="cyan">V34掉落調整</b><br><span class="muted">一般怪會依地圖掉落池給補給、材料、卷軸與低機率裝備；高等地圖更容易出高階材料，四龍/傲慢/遺忘等區域會出專屬材料。</span></div><div class="page-list">${maps}</div>`;
+  };
+
+  Game.craftFilterV34=Game.craftFilterV34||Game.craftFilterV30||'weapon';
+  Game.countItemV34=function(id){return Object.values(this.s.inv||{}).filter(x=>x.id===id).reduce((a,x)=>a+(x.qty||0),0);};
+  Game.recipeOkV34=function(r){return Object.entries(r.req||{}).every(([id,q])=>this.countItemV34(id)>=q)&&(this.s.adena||0)>=(r.adena||0);};
+  Game.recipeReqV34=function(r){return Object.entries(r.req||{}).map(([id,q])=>{const have=this.countItemV34(id), d=DB.item[id]; return `<span class="pill ${have>=q?'green':'red'}">${esc(d?.name||id)} ${have}/${q}</span>`;}).join('');};
+  Game.craftCardV34=function(d){
+    const r=(DB.recipes||{})[d.id]; if(!r) return '';
+    const ok=this.recipeOkV34(r), equip=EQUIP_TYPES.includes(d.type), usable=this.canUseByClass?this.canUseByClass(d):true;
+    return `<div class="craft-v34-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip?this.jobLineV34(d):''}<div class="drop-box">${this.recipeReqV34(r)}</div></div>`;
+  };
+  Game.viewCraftV34=function(){
+    const cats=[['weapon','武器'],['armor','裝備'],['accessory','飾品'],['book','技能書'],['material','材料']];
+    const filter=this.craftFilterV34||'weapon';
+    const recipes=Object.values(DB.recipes||{}).map(r=>this.def(r.id)).filter(Boolean);
+    const list=recipes.filter(d=>{
+      if(filter==='weapon') return d.type==='weapon';
+      if(filter==='armor') return ARMOR_TYPES.includes(d.type);
+      if(filter==='accessory') return ACC_TYPES.includes(d.type);
+      if(filter==='book') return d.type==='book';
+      if(filter==='material') return d.type==='material';
+      return true;
+    }).sort((a,b)=>(RANK_VAL[b.rank||'N']-RANK_VAL[a.rank||'N'])||String(a.name).localeCompare(String(b.name),'zh-Hant'));
+    const ready=list.filter(d=>this.recipeOkV34(DB.recipes[d.id])).length;
+    const usable=list.filter(d=>!EQUIP_TYPES.includes(d.type)||(this.canUseByClass?this.canUseByClass(d):true)).length;
+    const materialTotal=Object.values(this.s.inv||{}).filter(x=>this.def(x.id)?.type==='material').reduce((a,x)=>a+(x.qty||0),0);
+    return (this.hero?this.hero('製作 V34','製作頁比照變身/娃娃分類，並顯示武器、裝備、飾品可使用職業。'):'<h3 class="title">製作 V34</h3>')+
+      (this.statCards?this.statCards([['目前分類',cats.find(x=>x[0]===filter)?.[1]||filter,'gold'],['可製作',ready+'/'+list.length,'green'],['本職可用',usable+'/'+list.length,'blue'],['材料數量',materialTotal,'purple']]):'')+
+      `<div class="tabs page-tabs">${cats.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="craftFilterV34" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="craft-v34-grid">${list.map(d=>this.craftCardV34(d)).join('')||'<p class="muted">此分類目前沒有配方</p>'}</div>`;
+  };
+
+  const oldRenderTabV34=Game.renderTab;
+  Game.renderTab=function(){
+    if(this.tab==='craft'){
+      document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===this.tab));
+      this.$('content').innerHTML=this.viewCraftV34();
+      return;
+    }
+    return oldRenderTabV34.call(this);
+  };
+  const oldActionV34=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='craftFilterV34'){this.craftFilterV34=arg||'weapon';this.renderTab();return;}
+    return oldActionV34.call(this,a,arg,b);
+  };
+
+  const oldAuditV34=Game.viewAudit;
+  Game.viewAudit=function(){
+    return oldAuditV34.call(this)+`<div class="card"><b class="gold">V34 修正</b><br><span class="muted">版本號已更新為 V34；怪物掉落池依地圖等級與區域屬性重整；製作清單已顯示可使用職業，武器依職業武器類型判斷，裝備/飾品預設全職業。</span></div>`;
+  };
+  const oldDashV34=Game.viewDash;
+  Game.viewDash=function(){
+    return oldDashV34.call(this)+`<div class="card"><b class="gold">V34 掉落與製作優化</b><br><span class="muted">怪物掉落已改為權重掉落池；製作頁新增可使用職業顯示，避免做出目前職業不能用的武器。</span></div>`;
+  };
+
+  const css=document.createElement('style');
+  css.textContent=`.drop-group{margin-top:8px;padding:8px;background:#07101d;border:1px solid #26364e;border-radius:10px}.drop-group b{color:var(--gold)}.craft-v34-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.craft-v34-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:170px}.craft-v34-card .drop-box{margin-top:8px}.pill-row{display:flex;flex-wrap:wrap;gap:4px}.job-line{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.job-ok{border-color:#22c55e!important;color:#86efac!important;background:#082018!important}.job-no{border-color:#7f1d1d!important;color:#fca5a5!important;background:#1f0b0b!important}.job-disabled{opacity:.62;filter:saturate(.65)}`;
+  document.head.appendChild(css);
+})();
+
 </script>
 
 </body></html>
