@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V29</title>
+<title>天堂M Core Rebuild V36</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
 </head><body>
-<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML｜離線存檔｜核心整合版：職業、地圖、怪物、掉落鑽石、裝備、強化、變身、娃娃、技能、技能書、副本、Boss、血盟、收藏、製作、商城、PVP、交易所、完整度檢查。</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
+<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
 <div id="classModal" class="modal hide"><div class="panel modal-card"><h2 class="title">選擇職業</h2><div id="classList" class="grid classes"></div><div class="row" style="margin-top:12px"><button id="backBtn">返回</button><button id="startBtn" class="green" disabled>開始遊戲</button></div></div></div>
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
@@ -3860,6 +3860,109 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const css=document.createElement('style');
   css.textContent=`.r-M{color:#f87171}.r-L{color:#fb923c}.r-SSR{color:#c084fc}.r-SR{color:#60a5fa}.r-R{color:#4ade80}.r-N{color:#e5e7eb}`;
   document.head.appendChild(css);
+})();
+
+
+/* === V36 MAP BOOK BOSS KILL HOTFIX ===
+   修復：地圖圖鑑中的 Boss 名稱若不是原本 spawn() 判斷式的「王/龍/安塔/巴拉」關鍵字，
+   例如「巴風特侍徒」，擊殺後不會登錄到地圖圖鑑 Boss 進度。
+   1) 以地圖圖鑑 bossOf()/mapProgressV34Fixed 的 Boss 清單為準。
+   2) spawn 後若目標名稱屬於該地圖 Boss 清單，強制標記為 Boss。
+   3) kill 後保證 codexBoss 至少 +1，不再因 mon.boss=false 漏登錄。
+*/
+(function(){
+  const safeE=(typeof E==='function')?E:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const uniq=arr=>Array.from(new Set((arr||[]).filter(Boolean)));
+
+  document.title='天堂M Core Rebuild V36';
+  const mainTitle=document.querySelector('#app .top .title');
+  if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V36';
+  const startTitle=document.querySelector('#start h1');
+  if(startTitle) startTitle.textContent='天堂M Core Rebuild V36';
+
+  Game.versionLabel='V36';
+
+  Game.mapBossNamesV36=function(map){
+    if(!map) return [];
+    const bossKeywords=/王|boss|龍|安塔|巴拉|法利|林德|吉爾|巴風|巴風特|死亡騎士|巫妖|木乃伊|吸血鬼|巨蟻|不死鳥|惡魔|克特|賽尼斯|侍徒|祭司|守護|首領|隊長/i;
+    const fromMon=(map.mons||[]).filter(n=>bossKeywords.test(String(n)));
+    const mapText=((map.id||'')+' '+(map.name||'')).toLowerCase();
+    const fromBoss=(DB.bosses||[]).filter(b=>{
+      const bn=String(b.name||'');
+      const zone=String(b.zone||'').toLowerCase();
+      return zone.includes(String(map.id||'').toLowerCase()) || mapText.includes(bn.toLowerCase()) || ((map.min||0)>=70 && Math.abs((b.lv||0)-(map.min||0))<=12);
+    }).map(b=>b.name);
+    return uniq(fromMon.concat(fromBoss));
+  };
+
+  Game.isMapBossV36=function(name,map){
+    const n=String(name||'');
+    if(!n) return false;
+    return this.mapBossNamesV36(map||this.map()).some(b=>b===n || n.includes(b) || b.includes(n));
+  };
+
+  // 覆寫進度計算，Boss 清單改用 V36 統一清單，避免畫面與擊殺判定不同步。
+  const oldProgress=Game.mapProgressV34Fixed;
+  Game.mapProgressV34Fixed=function(map){
+    const p=oldProgress?oldProgress.call(this,map):{explore:0,mons:[],bosses:[],monCount:0,bossCount:0,monPct:0,bossPct:100,total:0};
+    const bosses=this.mapBossNamesV36(map);
+    const bossCount=bosses.filter(n=>(this.s?.codexBoss?.[n]||0)>0).length;
+    const bossPct=bosses.length?Math.floor(bossCount/bosses.length*100):100;
+    const explore=Math.max(0,Math.min(100,p.explore||0));
+    const monPct=Math.max(0,Math.min(100,p.monPct||0));
+    const total=Math.floor(explore*0.5+monPct*0.35+bossPct*0.15);
+    return Object.assign({},p,{bosses,bossCount,bossPct,total});
+  };
+
+  const oldSpawn=Game.spawn;
+  Game.spawn=function(){
+    oldSpawn.call(this);
+    if(this.s&&this.s.mon){
+      const map=this.map();
+      this.s.mon.map=this.s.map;
+      if(this.isMapBossV36(this.s.mon.name,map)){
+        this.s.mon.boss=true;
+        this.s.mon.max=Math.max(this.s.mon.max||1,this.s.mon.hp||1);
+      }
+    }
+  };
+
+  const oldKill=Game.kill;
+  Game.kill=function(mon,bonus){
+    const mapId=(mon&&mon.map)||this.s?.map;
+    const map=(DB.maps||[]).find(m=>m.id===mapId)||this.map();
+    const isBoss=!!(mon&&this.isMapBossV36(mon.name,map));
+    let before=0;
+    if(isBoss){
+      this.s.codexBoss=this.s.codexBoss||{};
+      before=this.s.codexBoss[mon.name]||0;
+      mon.boss=true;
+      mon.map=mapId;
+    }
+    oldKill.call(this,mon,bonus);
+    if(isBoss){
+      this.s.codexBoss=this.s.codexBoss||{};
+      // 若舊邏輯沒有登錄，強制補 1 次；若舊邏輯已登錄，不重複加。
+      if((this.s.codexBoss[mon.name]||0)<=before){
+        this.s.codexBoss[mon.name]=before+1;
+        this.log('BOSS圖鑑登錄：'+mon.name,'gold');
+      }
+      this.s.mapDiscovered=this.s.mapDiscovered||{};
+      this.s.codexMap=this.s.codexMap||{};
+      if(mapId){
+        this.s.mapDiscovered[mapId]=true;
+        this.s.codexMap[mapId]=Math.max(this.s.codexMap[mapId]||0,100);
+      }
+      this.save(false);
+    }
+  };
+
+  const oldViewMapBook=Game.viewMapBookV23;
+  Game.viewMapBookV23=function(){
+    let html=oldViewMapBook?oldViewMapBook.call(this):'';
+    html=html.replace(/地圖圖鑑/g,'地圖圖鑑');
+    return html;
+  };
 })();
 </script>
 
