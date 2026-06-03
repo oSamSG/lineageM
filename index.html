@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V29</title>
+<title>天堂M Core Rebuild V34</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
@@ -2434,6 +2434,189 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   document.title='天堂M Core Rebuild V33｜已裝備道具販售保護版';
 })();
 
+
+
+/* === V34 CLEAN FULL PATCH ===
+   目標：移除版本解說/完整度顯示、開放每日補償與 TJ 補償、提高副本次數。 */
+(function(){
+  const $e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $n=n=>Math.floor(Number(n)||0).toLocaleString();
+  const TODAY=()=>new Date().toISOString().slice(0,10);
+  const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
+
+  document.title='天堂M Core Rebuild V34';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
+
+  const oldBaseClean=Game.base;
+  Game.base=function(cls){
+    const s=oldBaseClean.call(this,cls);
+    s.version='core_rebuild_v34';
+    s.daily=Object.assign({},s.daily||{}, {
+      dungeon:DUNGEON_MAX,boss:BOSS_MAX,tj:TJ_MAX,
+      guildDungeon:GUILD_DUNGEON_MAX,guildBoss:GUILD_BOSS_MAX,
+      tjRestore:1,tjCard:1,tjEnchant:1,
+      kills:0,diamondQuest:0,mailDate:''
+    });
+    s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+    s.claimed=s.claimed||{};
+    return s;
+  };
+
+  const oldEnsureClean=Game.ensure;
+  Game.ensure=function(){
+    oldEnsureClean.call(this);
+    const s=this.s; if(!s) return;
+    s.version='core_rebuild_v34';
+    s.daily=s.daily||{};
+    s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+    s.claimed=s.claimed||{};
+    const today=TODAY();
+    if(s.daily.resetDate!==today){
+      s.daily.resetDate=today;
+      s.daily.dungeon=DUNGEON_MAX;
+      s.daily.boss=BOSS_MAX;
+      s.daily.guildDungeon=GUILD_DUNGEON_MAX;
+      s.daily.guildBoss=GUILD_BOSS_MAX;
+      s.daily.tj=TJ_MAX;
+      s.daily.tjRestore=1;
+      s.daily.tjCard=1;
+      s.daily.tjEnchant=1;
+      s.daily.kills=0;
+      s.daily.diamondQuest=0;
+      s.daily.mailDate='';
+    }
+    if(!s.daily.v34Raised){
+      s.daily.dungeon=Math.max(Number(s.daily.dungeon)||0,DUNGEON_MAX);
+      s.daily.boss=Math.max(Number(s.daily.boss)||0,BOSS_MAX);
+      s.daily.guildDungeon=Math.max(Number(s.daily.guildDungeon)||0,GUILD_DUNGEON_MAX);
+      s.daily.guildBoss=Math.max(Number(s.daily.guildBoss)||0,GUILD_BOSS_MAX);
+      s.daily.tj=Math.max(Number(s.daily.tj)||0,TJ_MAX);
+      s.daily.tjRestore=Math.max(Number(s.daily.tjRestore)||0,1);
+      s.daily.tjCard=Math.max(Number(s.daily.tjCard)||0,1);
+      s.daily.tjEnchant=Math.max(Number(s.daily.tjEnchant)||0,1);
+      s.daily.v34Raised=true;
+    }
+  };
+
+  // 移除「完整度檢查」頁籤與舊版/測試頁籤；保留實際遊戲功能。
+  Game.tabs=function(){
+    const t=[
+      ['dash','總覽'],['equip','裝備'],['bag','背包'],['enhance','強化'],['hunt','狩獵'],['skills','技能'],
+      ['draw','抽卡'],['cards','變身/娃娃'],['combine','合成'],['cardBook','卡片收藏冊'],['awake','覺醒'],
+      ['codex','收藏'],['monsterBook','怪物圖鑑'],['mapBook','地圖圖鑑'],['bossBook','BOSS圖鑑'],
+      ['dungeon','副本'],['boss','世界王'],['guild','血盟'],['guildRaid','血盟副本/Boss'],
+      ['craft','製作'],['growth','成長'],['v23Growth','魔眼/紋樣/聖劍'],['elixir','萬能藥'],
+      ['shop','商城'],['signin','每日簽到'],['events','活動'],['tj','TJ系統'],['ach','成就'],['settings','自動設定']
+    ];
+    this.$('tabs').innerHTML=t.map(x=>`<button class="tab" data-tab="${x[0]}">${x[1]}</button>`).join('');
+    this.$('tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{this.tab=b.dataset.tab;this.renderTab();});
+  };
+
+  Game.cleanPowerV34=function(){
+    const st=this.total();
+    return Math.max(0,Math.floor((st.dmg+this.s.lv*2)*18+(10-st.ac)*12+(st.dr||0)*35+(st.hit||0)*15+this.s.lv*42));
+  };
+
+  Game.viewDash=function(){
+    const st=this.total();
+    const mailClaimed=this.s.daily.mailDate===TODAY();
+    return (this.hero?this.hero('總覽',`Lv.${this.s.lv} ${this.cls().name}｜${this.map().name}`):'<h3 class="title">總覽</h3>')+
+      (this.statCards?this.statCards([
+        ['戰力',$n(this.cleanPowerV34()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
+        ['副本次數',this.s.daily.dungeon+'/'+DUNGEON_MAX,'blue'],['世界王',this.s.daily.boss+'/'+BOSS_MAX,'red']
+      ]):'')+
+      `<div class="two-col"><div class="card"><b>每日補償</b><p class="muted">每日可領取一次。</p><button data-act="mail" class="gold" ${mailClaimed?'disabled':''}>${mailClaimed?'今日已領取':'領取每日補償'}</button></div><div class="card"><b>TJ補償</b><p class="muted">今日剩餘 ${this.s.daily.tj||0} 次。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div></div>`+
+      `<div class="card"><b>目前能力</b><div class="pill-row"><span class="pill">AC ${st.ac}</span><span class="pill">傷害 ${Math.floor(st.dmg+this.s.lv*2)}</span><span class="pill">命中 ${st.hit||0}</span><span class="pill">減傷 ${st.dr||0}</span><span class="pill">MR ${st.mr||0}</span></div></div>`;
+  };
+
+  Game.viewDungeon=function(){
+    const rows=(DB.dungeons||[]).map(d=>{
+      const lvOk=this.s.lv>=d.lv, costOk=this.s.diamond>=d.cost, can=(this.s.daily.dungeon||0)>0&&lvOk&&costOk;
+      return `<div class="list-card"><div class="row"><div><b>${$e(d.name)}</b><br><span class="muted">需求 Lv.${d.lv}｜消耗 ${d.cost} 鑽｜金幣 ${$n(d.reward)}</span></div><button data-act="dg" data-arg="${$e(d.id)}" ${can?'':'disabled'}>進入</button></div></div>`;
+    }).join('');
+    return (this.hero?this.hero('副本',`今日剩餘 ${this.s.daily.dungeon||0}/${DUNGEON_MAX} 次`):'<h3 class="title">副本</h3>')+
+      (this.statCards?this.statCards([['副本次數',(this.s.daily.dungeon||0)+'/'+DUNGEON_MAX,'gold'],['副本數',(DB.dungeons||[]).length,'blue'],['角色等級','Lv.'+this.s.lv,'green']]):'')+
+      `<div class="page-list">${rows}</div>`;
+  };
+
+  Game.viewGuildRaidV23=function(){
+    const gd=(DB.guildDungeonsV23||[{id:'gd_basic',name:'血盟訓練場',lv:1,reward:50000},{id:'gd_elite',name:'血盟精英副本',lv:30,reward:150000}]).map(d=>{
+      const can=(this.s.daily.guildDungeon||0)>0&&this.s.lv>=(d.lv||1);
+      return `<div class="list-card"><div class="row"><div><b>${$e(d.name)}</b><br><span class="muted">需求 Lv.${d.lv||1}｜金幣 ${$n(d.reward||0)}</span></div><button data-act="guildDungeonV23" data-arg="${$e(d.id)}" ${can?'':'disabled'}>進入</button></div></div>`;
+    }).join('');
+    const gb=(DB.guildBossesV23||[{id:'gb_basic',name:'血盟突襲 Boss',lv:20,hp:50000},{id:'gb_dragon',name:'血盟龍王',lv:60,hp:300000}]).map(b=>{
+      const can=(this.s.daily.guildBoss||0)>0;
+      return `<div class="list-card boss-card"><div class="row"><div><b class="red">${$e(b.name)}</b><br><span class="muted">建議 Lv.${b.lv||1}｜HP ${$n(b.hp||0)}</span></div><button data-act="guildBossV23" data-arg="${$e(b.id)}" ${can?'':'disabled'}>召喚</button></div></div>`;
+    }).join('');
+    return (this.hero?this.hero('血盟副本 / 血盟Boss',`血盟副本 ${this.s.daily.guildDungeon||0}/${GUILD_DUNGEON_MAX}｜血盟Boss ${this.s.daily.guildBoss||0}/${GUILD_BOSS_MAX}`):'<h3 class="title">血盟副本 / 血盟Boss</h3>')+
+      `<h4 class="title">血盟副本</h4><div class="page-list">${gd}</div><h4 class="title">血盟Boss</h4><div class="page-list">${gb}</div>`;
+  };
+
+  Game.viewTJV23=function(){
+    const hist=(this.s.tj.history||[]).slice(0,20).map(x=>`<div class="list-card">${new Date(x.t).toLocaleString()}｜${$e(x.msg)}</div>`).join('');
+    return (this.hero?this.hero('TJ系統',`今日 TJ 補償剩餘 ${this.s.daily.tj||0}/${TJ_MAX} 次`):'<h3 class="title">TJ系統</h3>')+
+      (this.statCards?this.statCards([['TJ補償',(this.s.daily.tj||0)+'/'+TJ_MAX,'gold'],['復原券',this.s.tj.restore||0,'green'],['卡片券',this.s.tj.card||0,'purple'],['強化券',this.s.tj.enchant||0,'blue']]):'')+
+      `<div class="two-col"><div class="card"><b>每日 TJ 補償</b><p class="muted">提供強化、卡片與製作支援。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div><div class="card"><b>使用券</b><p class="muted">可使用既有 TJ 功能。</p><button data-act="tjRestore" ${(this.s.daily.tjRestore||0)>0?'':'disabled'}>TJ復原</button> <button data-act="tjCard" ${(this.s.daily.tjCard||0)>0?'':'disabled'}>TJ卡片</button> <button data-act="tjEnchant" ${(this.s.daily.tjEnchant||0)>0?'':'disabled'}>TJ強化</button></div></div><h4 class="title">紀錄</h4><div class="page-list">${hist||'<p class="muted">尚無紀錄</p>'}</div>`;
+  };
+
+  // 移除地圖圖鑑/卡片收藏等頁面內的「完成度」字樣，改成持有與登錄狀態。
+  const cleanWords=html=>String(html||'').replace(/完成度/g,'進度').replace(/完整度/g,'資料').replace(/V\d+[^<]{0,80}/g,'');
+  const oldMapBook=Game.viewMapBookV23;
+  if(oldMapBook) Game.viewMapBookV23=function(){return cleanWords(oldMapBook.call(this));};
+  const oldCardBook=Game.viewCardBookV23;
+  if(oldCardBook) Game.viewCardBookV23=function(){return cleanWords(oldCardBook.call(this));};
+  const oldMonsterBook=Game.viewMonsterBookV23;
+  if(oldMonsterBook) Game.viewMonsterBookV23=function(){return cleanWords(oldMonsterBook.call(this));};
+  const oldBossBook=Game.viewBossBookV23;
+  if(oldBossBook) Game.viewBossBookV23=function(){return cleanWords(oldBossBook.call(this));};
+
+  const oldActionClean=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='mail'){
+      const s=this.s; this.ensure();
+      if(s.daily.mailDate===TODAY()){alert('今日已領取');return;}
+      s.daily.mailDate=TODAY();
+      s.adena=(s.adena||0)+500000;
+      s.diamond=(s.diamond||0)+300;
+      s.leaf=Math.min(999,(s.leaf||0)+300);
+      this.addItem('leaf_box',5);
+      this.addItem('potion_clear',100);
+      this.addItem('scroll_weapon',3);
+      this.addItem('scroll_armor',5);
+      this.addItem('m18_powder',100);
+      this.log('已領取每日補償','green');
+      this.render(); this.save(false); return;
+    }
+    if(a==='tj'){
+      const s=this.s; this.ensure();
+      if((s.daily.tj||0)<=0){alert('今日 TJ 補償已領完');return;}
+      s.daily.tj--;
+      s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+      s.tj.restore=(s.tj.restore||0)+1;
+      s.tj.card=(s.tj.card||0)+1;
+      s.tj.enchant=(s.tj.enchant||0)+1;
+      s.diamond=(s.diamond||0)+500;
+      this.addItem('scroll_bless_weapon',3);
+      this.addItem('scroll_bless_armor',5);
+      this.addItem('v23_tj_coin',3);
+      this.addItem('m18_powder',300);
+      s.tj.history.unshift({t:Date.now(),msg:'領取 TJ 補償'});
+      this.log('已領取 TJ 補償','green');
+      this.render(); this.save(false); return;
+    }
+    if(a==='audit'){this.tab='dash';this.renderTab();return;}
+    return oldActionClean.call(this,a,arg,b);
+  };
+
+  const oldRenderTabClean=Game.renderTab;
+  Game.renderTab=function(){
+    if(this.tab==='audit'){this.tab='dash';}
+    return oldRenderTabClean.call(this);
+  };
+})();
+
 </script>
 
 
@@ -3076,6 +3259,189 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const css=document.createElement('style');
   css.textContent=`.drop-group{margin-top:8px;padding:8px;background:#07101d;border:1px solid #26364e;border-radius:10px}.drop-group b{color:var(--gold)}.craft-v34-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.craft-v34-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:170px}.craft-v34-card .drop-box{margin-top:8px}.pill-row{display:flex;flex-wrap:wrap;gap:4px}.job-line{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.job-ok{border-color:#22c55e!important;color:#86efac!important;background:#082018!important}.job-no{border-color:#7f1d1d!important;color:#fca5a5!important;background:#1f0b0b!important}.job-disabled{opacity:.62;filter:saturate(.65)}`;
   document.head.appendChild(css);
+})();
+
+
+
+/* === V34 CLEAN FULL PATCH ===
+   目標：移除版本解說/完整度顯示、開放每日補償與 TJ 補償、提高副本次數。 */
+(function(){
+  const $e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const $n=n=>Math.floor(Number(n)||0).toLocaleString();
+  const TODAY=()=>new Date().toISOString().slice(0,10);
+  const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
+
+  document.title='天堂M Core Rebuild V34';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
+
+  const oldBaseClean=Game.base;
+  Game.base=function(cls){
+    const s=oldBaseClean.call(this,cls);
+    s.version='core_rebuild_v34';
+    s.daily=Object.assign({},s.daily||{}, {
+      dungeon:DUNGEON_MAX,boss:BOSS_MAX,tj:TJ_MAX,
+      guildDungeon:GUILD_DUNGEON_MAX,guildBoss:GUILD_BOSS_MAX,
+      tjRestore:1,tjCard:1,tjEnchant:1,
+      kills:0,diamondQuest:0,mailDate:''
+    });
+    s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+    s.claimed=s.claimed||{};
+    return s;
+  };
+
+  const oldEnsureClean=Game.ensure;
+  Game.ensure=function(){
+    oldEnsureClean.call(this);
+    const s=this.s; if(!s) return;
+    s.version='core_rebuild_v34';
+    s.daily=s.daily||{};
+    s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+    s.claimed=s.claimed||{};
+    const today=TODAY();
+    if(s.daily.resetDate!==today){
+      s.daily.resetDate=today;
+      s.daily.dungeon=DUNGEON_MAX;
+      s.daily.boss=BOSS_MAX;
+      s.daily.guildDungeon=GUILD_DUNGEON_MAX;
+      s.daily.guildBoss=GUILD_BOSS_MAX;
+      s.daily.tj=TJ_MAX;
+      s.daily.tjRestore=1;
+      s.daily.tjCard=1;
+      s.daily.tjEnchant=1;
+      s.daily.kills=0;
+      s.daily.diamondQuest=0;
+      s.daily.mailDate='';
+    }
+    if(!s.daily.v34Raised){
+      s.daily.dungeon=Math.max(Number(s.daily.dungeon)||0,DUNGEON_MAX);
+      s.daily.boss=Math.max(Number(s.daily.boss)||0,BOSS_MAX);
+      s.daily.guildDungeon=Math.max(Number(s.daily.guildDungeon)||0,GUILD_DUNGEON_MAX);
+      s.daily.guildBoss=Math.max(Number(s.daily.guildBoss)||0,GUILD_BOSS_MAX);
+      s.daily.tj=Math.max(Number(s.daily.tj)||0,TJ_MAX);
+      s.daily.tjRestore=Math.max(Number(s.daily.tjRestore)||0,1);
+      s.daily.tjCard=Math.max(Number(s.daily.tjCard)||0,1);
+      s.daily.tjEnchant=Math.max(Number(s.daily.tjEnchant)||0,1);
+      s.daily.v34Raised=true;
+    }
+  };
+
+  // 移除「完整度檢查」頁籤與舊版/測試頁籤；保留實際遊戲功能。
+  Game.tabs=function(){
+    const t=[
+      ['dash','總覽'],['equip','裝備'],['bag','背包'],['enhance','強化'],['hunt','狩獵'],['skills','技能'],
+      ['draw','抽卡'],['cards','變身/娃娃'],['combine','合成'],['cardBook','卡片收藏冊'],['awake','覺醒'],
+      ['codex','收藏'],['monsterBook','怪物圖鑑'],['mapBook','地圖圖鑑'],['bossBook','BOSS圖鑑'],
+      ['dungeon','副本'],['boss','世界王'],['guild','血盟'],['guildRaid','血盟副本/Boss'],
+      ['craft','製作'],['growth','成長'],['v23Growth','魔眼/紋樣/聖劍'],['elixir','萬能藥'],
+      ['shop','商城'],['signin','每日簽到'],['events','活動'],['tj','TJ系統'],['ach','成就'],['settings','自動設定']
+    ];
+    this.$('tabs').innerHTML=t.map(x=>`<button class="tab" data-tab="${x[0]}">${x[1]}</button>`).join('');
+    this.$('tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{this.tab=b.dataset.tab;this.renderTab();});
+  };
+
+  Game.cleanPowerV34=function(){
+    const st=this.total();
+    return Math.max(0,Math.floor((st.dmg+this.s.lv*2)*18+(10-st.ac)*12+(st.dr||0)*35+(st.hit||0)*15+this.s.lv*42));
+  };
+
+  Game.viewDash=function(){
+    const st=this.total();
+    const mailClaimed=this.s.daily.mailDate===TODAY();
+    return (this.hero?this.hero('總覽',`Lv.${this.s.lv} ${this.cls().name}｜${this.map().name}`):'<h3 class="title">總覽</h3>')+
+      (this.statCards?this.statCards([
+        ['戰力',$n(this.cleanPowerV34()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
+        ['副本次數',this.s.daily.dungeon+'/'+DUNGEON_MAX,'blue'],['世界王',this.s.daily.boss+'/'+BOSS_MAX,'red']
+      ]):'')+
+      `<div class="two-col"><div class="card"><b>每日補償</b><p class="muted">每日可領取一次。</p><button data-act="mail" class="gold" ${mailClaimed?'disabled':''}>${mailClaimed?'今日已領取':'領取每日補償'}</button></div><div class="card"><b>TJ補償</b><p class="muted">今日剩餘 ${this.s.daily.tj||0} 次。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div></div>`+
+      `<div class="card"><b>目前能力</b><div class="pill-row"><span class="pill">AC ${st.ac}</span><span class="pill">傷害 ${Math.floor(st.dmg+this.s.lv*2)}</span><span class="pill">命中 ${st.hit||0}</span><span class="pill">減傷 ${st.dr||0}</span><span class="pill">MR ${st.mr||0}</span></div></div>`;
+  };
+
+  Game.viewDungeon=function(){
+    const rows=(DB.dungeons||[]).map(d=>{
+      const lvOk=this.s.lv>=d.lv, costOk=this.s.diamond>=d.cost, can=(this.s.daily.dungeon||0)>0&&lvOk&&costOk;
+      return `<div class="list-card"><div class="row"><div><b>${$e(d.name)}</b><br><span class="muted">需求 Lv.${d.lv}｜消耗 ${d.cost} 鑽｜金幣 ${$n(d.reward)}</span></div><button data-act="dg" data-arg="${$e(d.id)}" ${can?'':'disabled'}>進入</button></div></div>`;
+    }).join('');
+    return (this.hero?this.hero('副本',`今日剩餘 ${this.s.daily.dungeon||0}/${DUNGEON_MAX} 次`):'<h3 class="title">副本</h3>')+
+      (this.statCards?this.statCards([['副本次數',(this.s.daily.dungeon||0)+'/'+DUNGEON_MAX,'gold'],['副本數',(DB.dungeons||[]).length,'blue'],['角色等級','Lv.'+this.s.lv,'green']]):'')+
+      `<div class="page-list">${rows}</div>`;
+  };
+
+  Game.viewGuildRaidV23=function(){
+    const gd=(DB.guildDungeonsV23||[{id:'gd_basic',name:'血盟訓練場',lv:1,reward:50000},{id:'gd_elite',name:'血盟精英副本',lv:30,reward:150000}]).map(d=>{
+      const can=(this.s.daily.guildDungeon||0)>0&&this.s.lv>=(d.lv||1);
+      return `<div class="list-card"><div class="row"><div><b>${$e(d.name)}</b><br><span class="muted">需求 Lv.${d.lv||1}｜金幣 ${$n(d.reward||0)}</span></div><button data-act="guildDungeonV23" data-arg="${$e(d.id)}" ${can?'':'disabled'}>進入</button></div></div>`;
+    }).join('');
+    const gb=(DB.guildBossesV23||[{id:'gb_basic',name:'血盟突襲 Boss',lv:20,hp:50000},{id:'gb_dragon',name:'血盟龍王',lv:60,hp:300000}]).map(b=>{
+      const can=(this.s.daily.guildBoss||0)>0;
+      return `<div class="list-card boss-card"><div class="row"><div><b class="red">${$e(b.name)}</b><br><span class="muted">建議 Lv.${b.lv||1}｜HP ${$n(b.hp||0)}</span></div><button data-act="guildBossV23" data-arg="${$e(b.id)}" ${can?'':'disabled'}>召喚</button></div></div>`;
+    }).join('');
+    return (this.hero?this.hero('血盟副本 / 血盟Boss',`血盟副本 ${this.s.daily.guildDungeon||0}/${GUILD_DUNGEON_MAX}｜血盟Boss ${this.s.daily.guildBoss||0}/${GUILD_BOSS_MAX}`):'<h3 class="title">血盟副本 / 血盟Boss</h3>')+
+      `<h4 class="title">血盟副本</h4><div class="page-list">${gd}</div><h4 class="title">血盟Boss</h4><div class="page-list">${gb}</div>`;
+  };
+
+  Game.viewTJV23=function(){
+    const hist=(this.s.tj.history||[]).slice(0,20).map(x=>`<div class="list-card">${new Date(x.t).toLocaleString()}｜${$e(x.msg)}</div>`).join('');
+    return (this.hero?this.hero('TJ系統',`今日 TJ 補償剩餘 ${this.s.daily.tj||0}/${TJ_MAX} 次`):'<h3 class="title">TJ系統</h3>')+
+      (this.statCards?this.statCards([['TJ補償',(this.s.daily.tj||0)+'/'+TJ_MAX,'gold'],['復原券',this.s.tj.restore||0,'green'],['卡片券',this.s.tj.card||0,'purple'],['強化券',this.s.tj.enchant||0,'blue']]):'')+
+      `<div class="two-col"><div class="card"><b>每日 TJ 補償</b><p class="muted">提供強化、卡片與製作支援。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div><div class="card"><b>使用券</b><p class="muted">可使用既有 TJ 功能。</p><button data-act="tjRestore" ${(this.s.daily.tjRestore||0)>0?'':'disabled'}>TJ復原</button> <button data-act="tjCard" ${(this.s.daily.tjCard||0)>0?'':'disabled'}>TJ卡片</button> <button data-act="tjEnchant" ${(this.s.daily.tjEnchant||0)>0?'':'disabled'}>TJ強化</button></div></div><h4 class="title">紀錄</h4><div class="page-list">${hist||'<p class="muted">尚無紀錄</p>'}</div>`;
+  };
+
+  // 移除地圖圖鑑/卡片收藏等頁面內的「完成度」字樣，改成持有與登錄狀態。
+  const cleanWords=html=>String(html||'').replace(/完成度/g,'進度').replace(/完整度/g,'資料').replace(/V\d+[^<]{0,80}/g,'');
+  const oldMapBook=Game.viewMapBookV23;
+  if(oldMapBook) Game.viewMapBookV23=function(){return cleanWords(oldMapBook.call(this));};
+  const oldCardBook=Game.viewCardBookV23;
+  if(oldCardBook) Game.viewCardBookV23=function(){return cleanWords(oldCardBook.call(this));};
+  const oldMonsterBook=Game.viewMonsterBookV23;
+  if(oldMonsterBook) Game.viewMonsterBookV23=function(){return cleanWords(oldMonsterBook.call(this));};
+  const oldBossBook=Game.viewBossBookV23;
+  if(oldBossBook) Game.viewBossBookV23=function(){return cleanWords(oldBossBook.call(this));};
+
+  const oldActionClean=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='mail'){
+      const s=this.s; this.ensure();
+      if(s.daily.mailDate===TODAY()){alert('今日已領取');return;}
+      s.daily.mailDate=TODAY();
+      s.adena=(s.adena||0)+500000;
+      s.diamond=(s.diamond||0)+300;
+      s.leaf=Math.min(999,(s.leaf||0)+300);
+      this.addItem('leaf_box',5);
+      this.addItem('potion_clear',100);
+      this.addItem('scroll_weapon',3);
+      this.addItem('scroll_armor',5);
+      this.addItem('m18_powder',100);
+      this.log('已領取每日補償','green');
+      this.render(); this.save(false); return;
+    }
+    if(a==='tj'){
+      const s=this.s; this.ensure();
+      if((s.daily.tj||0)<=0){alert('今日 TJ 補償已領完');return;}
+      s.daily.tj--;
+      s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
+      s.tj.restore=(s.tj.restore||0)+1;
+      s.tj.card=(s.tj.card||0)+1;
+      s.tj.enchant=(s.tj.enchant||0)+1;
+      s.diamond=(s.diamond||0)+500;
+      this.addItem('scroll_bless_weapon',3);
+      this.addItem('scroll_bless_armor',5);
+      this.addItem('v23_tj_coin',3);
+      this.addItem('m18_powder',300);
+      s.tj.history.unshift({t:Date.now(),msg:'領取 TJ 補償'});
+      this.log('已領取 TJ 補償','green');
+      this.render(); this.save(false); return;
+    }
+    if(a==='audit'){this.tab='dash';this.renderTab();return;}
+    return oldActionClean.call(this,a,arg,b);
+  };
+
+  const oldRenderTabClean=Game.renderTab;
+  Game.renderTab=function(){
+    if(this.tab==='audit'){this.tab='dash';}
+    return oldRenderTabClean.call(this);
+  };
 })();
 
 </script>
