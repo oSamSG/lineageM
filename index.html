@@ -4335,6 +4335,105 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   document.head.appendChild(css);
 })();
 
+
+
+/* === V40.1 地圖圖鑑領取修復 ===
+   修復 V40 地圖圖鑑按下「領取」沒有反應：
+   - 新增 claimMapReward 實際處理流程。
+   - 同步支援舊 action：claimMapBookV31。
+   - 領取後寫入 mapClaimed 與 claimed['map_xxx']，避免重複領取。
+   - 重新渲染地圖圖鑑與角色能力，永久獎勵會透過既有 mapBookBonusV31 生效。
+*/
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const uniq=a=>[...new Set((a||[]).filter(Boolean).map(x=>String(x)))];
+  const statName={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',dmg:'傷害',hit:'命中',dr:'減傷',mr:'MR',spd:'速度',hp:'HP',mp:'MP',ac:'AC'};
+  const statLineLocal=o=>Object.entries(o||{}).map(([k,v])=>`${statName[k]||k}${v>=0?'+':''}${v}`).join('、')||'無';
+  const itemNameLocal=id=>(DB.item&&DB.item[id]?DB.item[id].name:id);
+  const dropsOfLocal=map=>uniq([...(map?.drops||[]),...(map?.materialDrops||[])]).filter(id=>DB.item&&DB.item[id]);
+  function rewardForMap(map){
+    const lv=Number(map?.min)||1;
+    const key=String((map?.name||'')+' '+(map?.id||''));
+    const fixed={talking:{hp:30},gludin:{ac:-1},giran:{dmg:1},dragon:{dmg:2,hit:1},toi:{dr:1,mr:5},lastabad:{dmg:2,dr:1},antharas:{hp:120,dr:2},valakas:{dmg:3,hp:80}};
+    if(fixed[map?.id]) return fixed[map.id];
+    if(/龍|安塔|巴拉|法利|林德|四龍/i.test(key)) return {dmg:2,dr:1,hp:80};
+    if(/傲慢|支配|遺忘|地獄|拉斯塔/i.test(key)) return {dmg:1,dr:1,mr:5};
+    if(lv>=75) return {dmg:1,dr:1};
+    if(lv>=45) return {hit:1,hp:50};
+    if(lv>=20) return {hp:30};
+    return {hp:15};
+  }
+  Game.mapBookCanClaimV401=function(map){
+    this.ensure();
+    const p=this.mapProgressV40?this.mapProgressV40(map):(this.mapProgressV37Fixed?this.mapProgressV37Fixed(map):(this.mapProgressV31?this.mapProgressV31(map):{total:0}));
+    const monsters=p.monsters||p.mons||[];
+    const bosses=p.bosses||[];
+    const monDone=!monsters.length || Number(p.monCount||0)>=monsters.length || Number(p.monPct||0)>=100;
+    const bossDone=!bosses.length || Number(p.bossCount||0)>=bosses.length || Number(p.bossPct||0)>=100;
+    return (Number(p.total)||0)>=100 || ((Number(p.explore)||0)>=100 && monDone && bossDone);
+  };
+  Game.claimMapRewardV401=function(mapId){
+    this.ensure();
+    const map=(DB.maps||[]).find(m=>String(m.id)===String(mapId));
+    if(!map){alert('找不到地圖資料');return;}
+    this.s.mapClaimed=this.s.mapClaimed||{};
+    this.s.claimed=this.s.claimed||{};
+    if(this.s.mapClaimed[map.id]||this.s.claimed['map_'+map.id]){alert('此地圖獎勵已領取');return;}
+    if(!this.mapBookCanClaimV401(map)){alert('地圖圖鑑尚未完成 100%');return;}
+    this.s.mapClaimed[map.id]=true;
+    this.s.claimed['map_'+map.id]=1;
+    if(DB.item&&DB.item.m18_powder) this.addItem('m18_powder',80);
+    if(DB.item&&DB.item.v23_pattern_stone) this.addItem('v23_pattern_stone',2);
+    if(DB.item&&DB.item.v23_event_coin) this.addItem('v23_event_coin',5);
+    this.log('已領取地圖圖鑑獎勵：'+map.name+'｜永久獎勵 '+statLineLocal(rewardForMap(map)),'gold');
+    this.save(false);
+    this.render();
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='claimMapReward'||a==='claimMapBookV31'){
+      this.claimMapRewardV401(arg);
+      return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  const oldViewMapBook=Game.viewMapBookV23;
+  Game.viewMapBookV23=function(){
+    this.ensure();
+    if(this.rebuildCodexV40Silent) this.rebuildCodexV40Silent();
+    this.pageState=this.pageState||{};
+    const q=String(this.pageState.mapDropSearch||'').trim().toLowerCase();
+    const all=DB.maps||[];
+    const matched=q?all.filter(m=>dropsOfLocal(m).some(id=>String(itemNameLocal(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q))):[];
+    const cards=all.map(map=>{
+      const p=this.mapProgressV40?this.mapProgressV40(map):(this.mapProgressV37Fixed?this.mapProgressV37Fixed(map):(this.mapProgressV31?this.mapProgressV31(map):{total:0,explore:0,monsters:[],bosses:[],monCount:0,bossCount:0}));
+      const monsters=p.monsters||p.mons||[];
+      const bosses=p.bosses||[];
+      const active=this.s.map===map.id;
+      const claimed=!!(this.s.mapClaimed?.[map.id]||this.s.claimed?.['map_'+map.id]);
+      const canClaim=this.mapBookCanClaimV401(map)&&!claimed;
+      const reward=rewardForMap(map);
+      const monHtml=monsters.map(n=>`<span class="pill ${(this.s.codexMon?.[n]||0)>0||this.s.mapMonsterSeen?.[map.id]?.[n]?'green':''}">${esc(n)} ${(this.s.codexMon?.[n]||0)}</span>`).join('')||'<span class="muted">無</span>';
+      const bossHtml=bosses.map(n=>`<span class="pill ${(this.s.codexBoss?.[n]||0)>0||this.s.mapBossSeen?.[map.id]?.[n]?'green':''}">${esc(n)} ${(this.s.codexBoss?.[n]||0)}</span>`).join('')||'<span class="muted">無</span>';
+      const drops=dropsOfLocal(map);
+      return `<div class="map-v40-card ${active?'active':''}">
+        <div class="row"><div><b class="gold">${esc(map.name)}</b> <span class="pill">Lv.${map.min}-${map.max}</span> ${claimed?'<span class="pill green">已領取</span>':canClaim?'<span class="pill red">可領取</span>':''}<br><span class="muted">永久獎勵：${esc(statLineLocal(reward))}</span></div><div><button data-act="goMap" data-arg="${esc(map.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button> <button data-act="claimMapReward" data-arg="${esc(map.id)}" ${canClaim?'':'disabled'}>領取</button></div></div>
+        <div class="bar"><i class="exp" style="width:${Math.max(0,Math.min(100,p.total||0))}%"></i><span>${p.total||0}%</span></div>
+        <div class="map-v40-sub"><span>探索 ${p.explore||0}/100</span><span>怪物 ${p.monCount||0}/${monsters.length}</span><span>Boss ${p.bossCount||0}/${bosses.length}</span><span>掉落 ${drops.length}</span></div>
+        <details><summary>怪物 / Boss</summary><div class="drop-box"><b>怪物</b>${monHtml}</div><div class="drop-box"><b>Boss</b>${bossHtml}</div></details>
+      </div>`;
+    }).join('');
+    const result=q?`<div class="card"><b class="cyan">搜尋掉落：${esc(this.pageState.mapDropSearch)}</b>${matched.length?matched.map(m=>{
+      const hits=dropsOfLocal(m).filter(id=>String(itemNameLocal(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q)).map(id=>`<span class="pill gold">${esc(itemNameLocal(id))}</span>`).join('');
+      return `<div class="item"><b>${esc(m.name)}</b><br>${hits}</div>`;
+    }).join(''):'<p class="muted">找不到掉落地圖</p>'}</div>`:'';
+    return (this.hero?this.hero('地圖圖鑑 V40','地圖圖鑑領取已修復。完成 100% 後可正常領取永久獎勵。','<button data-act="rebuildCodexV40" class="gold">重建圖鑑資料</button>'):'<h3 class="title">地圖圖鑑 V40</h3>')+
+      (this.statCards?this.statCards([['地圖',all.length,'gold'],['已探索',all.filter(m=>this.s.mapDiscovered?.[m.id]).length+'/'+all.length,'green'],['可領獎',all.filter(m=>this.mapBookCanClaimV401(m)&&!(this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id])).length,'red'],['已領取',all.filter(m=>this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]).length,'blue']]):'')+
+      `<div class="card"><div class="row"><b>搜尋掉落</b><input data-map-drop-search="1" value="${esc(this.pageState.mapDropSearch||'')}" placeholder="輸入道具 / 技能書名稱" style="min-width:280px;flex:1"></div></div>${result}<div class="page-list">${cards}</div>`;
+  };
+})();
 </script>
 
 </body></html>
