@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V36</title>
+<title>天堂M Core Rebuild V37</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
@@ -2436,7 +2436,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
 
 
-/* === V34 CLEAN FULL PATCH ===
+/* === V37 CLEAN FULL PATCH ===
    目標：移除版本解說/完整度顯示、開放每日補償與 TJ 補償、提高副本次數。 */
 (function(){
   const $e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -2444,15 +2444,15 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const TODAY=()=>new Date().toISOString().slice(0,10);
   const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
 
-  document.title='天堂M Core Rebuild V34';
-  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
+  document.title='天堂M Core Rebuild V37';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
 
   const oldBaseClean=Game.base;
   Game.base=function(cls){
     const s=oldBaseClean.call(this,cls);
-    s.version='core_rebuild_v34';
+    s.version='core_rebuild_v37';
     s.daily=Object.assign({},s.daily||{}, {
       dungeon:DUNGEON_MAX,boss:BOSS_MAX,tj:TJ_MAX,
       guildDungeon:GUILD_DUNGEON_MAX,guildBoss:GUILD_BOSS_MAX,
@@ -2468,7 +2468,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.ensure=function(){
     oldEnsureClean.call(this);
     const s=this.s; if(!s) return;
-    s.version='core_rebuild_v34';
+    s.version='core_rebuild_v37';
     s.daily=s.daily||{};
     s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
     s.claimed=s.claimed||{};
@@ -2487,7 +2487,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       s.daily.diamondQuest=0;
       s.daily.mailDate='';
     }
-    if(!s.daily.v34Raised){
+    if(!s.daily.v37Raised){
       s.daily.dungeon=Math.max(Number(s.daily.dungeon)||0,DUNGEON_MAX);
       s.daily.boss=Math.max(Number(s.daily.boss)||0,BOSS_MAX);
       s.daily.guildDungeon=Math.max(Number(s.daily.guildDungeon)||0,GUILD_DUNGEON_MAX);
@@ -2496,7 +2496,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       s.daily.tjRestore=Math.max(Number(s.daily.tjRestore)||0,1);
       s.daily.tjCard=Math.max(Number(s.daily.tjCard)||0,1);
       s.daily.tjEnchant=Math.max(Number(s.daily.tjEnchant)||0,1);
-      s.daily.v34Raised=true;
+      s.daily.v37Raised=true;
     }
   };
 
@@ -2514,7 +2514,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     this.$('tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{this.tab=b.dataset.tab;this.renderTab();});
   };
 
-  Game.cleanPowerV34=function(){
+  Game.cleanPowerV37=function(){
     const st=this.total();
     return Math.max(0,Math.floor((st.dmg+this.s.lv*2)*18+(10-st.ac)*12+(st.dr||0)*35+(st.hit||0)*15+this.s.lv*42));
   };
@@ -2524,7 +2524,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const mailClaimed=this.s.daily.mailDate===TODAY();
     return (this.hero?this.hero('總覽',`Lv.${this.s.lv} ${this.cls().name}｜${this.map().name}`):'<h3 class="title">總覽</h3>')+
       (this.statCards?this.statCards([
-        ['戰力',$n(this.cleanPowerV34()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
+        ['戰力',$n(this.cleanPowerV37()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
         ['副本次數',this.s.daily.dungeon+'/'+DUNGEON_MAX,'blue'],['世界王',this.s.daily.boss+'/'+BOSS_MAX,'red']
       ]):'')+
       `<div class="two-col"><div class="card"><b>每日補償</b><p class="muted">每日可領取一次。</p><button data-act="mail" class="gold" ${mailClaimed?'disabled':''}>${mailClaimed?'今日已領取':'領取每日補償'}</button></div><div class="card"><b>TJ補償</b><p class="muted">今日剩餘 ${this.s.daily.tj||0} 次。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div></div>`+
@@ -3078,8 +3078,8 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
 
 
-/* === V34 DROP / CRAFT JOB DISPLAY UPGRADE ===
-   1) 全站版本號更新為 V34
+/* === V37 DROP / CRAFT JOB DISPLAY UPGRADE ===
+   1) 全站版本號更新為 V37
    2) 怪物掉落優化：依地圖等級/類型建立權重掉落池，掉落表顯示更完整
    3) 製作道具顯示可使用職業；武器依武器類型判斷，防具/飾品預設全職業
 */
@@ -3093,24 +3093,24 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const EQUIP_TYPES=['weapon'].concat(ARMOR_TYPES,ACC_TYPES);
   const TYPE_NAME={weapon:'武器',helmet:'頭盔',tshirt:'內衣',armor:'盔甲',cloak:'斗篷',gloves:'手套',boots:'鞋子',amulet:'項鍊',belt:'腰帶',earring:'耳環',ring:'戒指',rune:'符石',seal:'印章',relic:'聖物',book:'技能書',material:'材料',scroll:'卷軸',potion:'藥水',box:'箱子',buff:'道具',elixir:'萬能藥'};
 
-  document.title='天堂M Core Rebuild V34｜掉落與製作職業標示版';
-  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
-  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V34：怪物掉落物品優化、製作道具職業可用性顯示、版本號統一更新。';
+  document.title='天堂M Core Rebuild V37｜掉落與製作職業標示版';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V37：怪物掉落物品優化、製作道具職業可用性顯示、版本號統一更新。';
 
-  Game.versionLabel='V34';
-  const oldEnsureV34=Game.ensure;
+  Game.versionLabel='V37';
+  const oldEnsureV37=Game.ensure;
   Game.ensure=function(){
-    oldEnsureV34.call(this);
-    if(this.s) this.s.version='core_rebuild_v34_drop_craft_job';
+    oldEnsureV37.call(this);
+    if(this.s) this.s.version='core_rebuild_v37_drop_craft_job';
   };
 
-  Game.classListV34=function(){return Object.values(DB.classes||{});};
-  Game.classNamesForItemV34=function(d){
+  Game.classListV37=function(){return Object.values(DB.classes||{});};
+  Game.classNamesForItemV37=function(d){
     if(!d) return ['未知'];
     if(d.allowedClasses&&Array.isArray(d.allowedClasses)) return d.allowedClasses.map(id=>DB.classes[id]?.name||id);
     if(d.type==='weapon'){
-      const arr=this.classListV34().filter(c=>(c.weapons||[]).includes(d.weapon)).map(c=>c.name);
+      const arr=this.classListV37().filter(c=>(c.weapons||[]).includes(d.weapon)).map(c=>c.name);
       return arr.length?arr:['未設定'];
     }
     if(ARMOR_TYPES.includes(d.type)||ACC_TYPES.includes(d.type)) return ['全職業'];
@@ -3119,8 +3119,8 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     }
     return ['全職業'];
   };
-  Game.jobLineV34=function(d){
-    const names=this.classNamesForItemV34(d);
+  Game.jobLineV37=function(d){
+    const names=this.classNamesForItemV37(d);
     const usable=this.canUseByClass?this.canUseByClass(d):(d.type!=='weapon'||(this.cls().weapons||[]).includes(d.weapon));
     return `<div class="job-line"><span class="pill ${usable?'job-ok':'job-no'}">目前職業：${usable?'可使用':'不可使用'}</span>${names.map(n=>`<span class="pill ${usable||n==='全職業'?'job-ok':'job-no'}">${esc(n)}</span>`).join('')}</div>`;
   };
@@ -3133,7 +3133,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return Object.values(DB.item||{}).filter(d=>d.type===type&&(!rank||d.rank===rank)).map(d=>d.id);
   }
   function pickOne(arr){return arr&&arr.length?arr[Math.floor(Math.random()*arr.length)]:null;}
-  Game.buildDropPoolV34=function(map){
+  Game.buildDropPoolV37=function(map){
     const pool=[]; const lv=map?.min||1; const name=(map?.name||'')+' '+(map?.id||'');
     (map?.drops||[]).forEach(id=>{const d=DB.item[id]; if(!d) return; const rank=RANK_VAL[d.rank||'N']||1; addPool(pool,id,Math.max(1,20-rank*3),1,1,'地圖原始掉落');});
     (map?.materialDrops||[]).forEach(id=>{const d=DB.item[id]; if(!d) return; const rank=RANK_VAL[d.rank||'N']||1; addPool(pool,id,Math.max(2,34-rank*4),1,rank>=4?1:3,'地圖材料');});
@@ -3154,13 +3154,13 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const seen=new Set();
     return pool.filter(x=>{const k=x.id+'|'+x.tag; if(seen.has(k)) return false; seen.add(k); return true;});
   };
-  Game.rollDropV34=function(map,boss){
-    const pool=this.buildDropPoolV34(map); if(!pool.length) return null;
+  Game.rollDropV37=function(map,boss){
+    const pool=this.buildDropPoolV37(map); if(!pool.length) return null;
     const total=pool.reduce((a,x)=>a+(x.weight||1),0); let r=Math.random()*total;
     for(const x of pool){r-=x.weight||1; if(r<=0){return x;}}
     return pool[pool.length-1];
   };
-  Game.dropRateV34=function(map,boss){
+  Game.dropRateV37=function(map,boss){
     const lv=map?.min||1;
     let rate=0.18;
     if(lv>=25) rate=0.24;
@@ -3173,47 +3173,47 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return Math.min(0.90,rate);
   };
 
-  const oldKillV34=Game.kill;
+  const oldKillV37=Game.kill;
   Game.kill=function(m,bonus){
     const map=this.map();
-    oldKillV34.call(this,m,bonus);
+    oldKillV37.call(this,m,bonus);
     if(!map) return;
-    const rate=this.dropRateV34(map,m&&m.boss);
+    const rate=this.dropRateV37(map,m&&m.boss);
     if(Math.random()>rate) return;
-    const drop=this.rollDropV34(map,m&&m.boss); if(!drop||!DB.item[drop.id]) return;
+    const drop=this.rollDropV37(map,m&&m.boss); if(!drop||!DB.item[drop.id]) return;
     const qty=this.rand?this.rand(drop.qtyMin||1,drop.qtyMax||1):Math.floor((drop.qtyMin||1)+Math.random()*((drop.qtyMax||1)-(drop.qtyMin||1)+1));
     this.addItem(drop.id,qty,0);
-    this.log(`V34掉落：${DB.item[drop.id].name} ×${qty}｜${drop.tag}`,'green');
+    this.log(`V37掉落：${DB.item[drop.id].name} ×${qty}｜${drop.tag}`,'green');
   };
 
-  Game.dropPreviewV34=function(map){
-    const pool=this.buildDropPoolV34(map);
+  Game.dropPreviewV37=function(map){
+    const pool=this.buildDropPoolV37(map);
     const grouped={};
     pool.forEach(x=>{const d=DB.item[x.id]; if(!d) return; const type=(d.type==='weapon')?'武器':ARMOR_TYPES.includes(d.type)?'裝備':ACC_TYPES.includes(d.type)?'飾品':d.type==='material'?'材料':d.type==='scroll'?'卷軸':d.type==='potion'?'藥水':'其他'; grouped[type]=grouped[type]||[]; grouped[type].push(d);});
     return Object.entries(grouped).map(([type,list])=>`<div class="drop-group"><b>${esc(type)}</b><div class="pill-row">${list.slice(0,14).map(d=>`<span class="pill r-${d.rank||'N'}">${esc(d.name)}</span>`).join('')}</div></div>`).join('');
   };
   Game.viewHunt=function(){
     const maps=(DB.maps||[]).map(m=>{
-      const active=this.s.map===m.id, rate=Math.round(this.dropRateV34(m,false)*100);
-      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜一般掉落率約 ${rate}%</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV34(m)}</div>`;
+      const active=this.s.map===m.id, rate=Math.round(this.dropRateV37(m,false)*100);
+      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜一般掉落率約 ${rate}%</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV37(m)}</div>`;
     }).join('');
-    return (this.hero?this.hero('狩獵 / 怪物掉落 V34','依地圖等級、地區屬性、Boss 類型建立權重掉落池；掉落表已分類顯示。'):'<h3 class="title">狩獵 / 怪物掉落 V34</h3>')+
+    return (this.hero?this.hero('狩獵 / 怪物掉落 V37','依地圖等級、地區屬性、Boss 類型建立權重掉落池；掉落表已分類顯示。'):'<h3 class="title">狩獵 / 怪物掉落 V37</h3>')+
       (this.statCards?this.statCards([['地圖數',(DB.maps||[]).length,'blue'],['怪物種類',new Set((DB.maps||[]).flatMap(m=>m.mons||[])).size,'red'],['目前地圖',esc(this.map().name),'gold'],['今日擊殺',this.s.daily.kills||0,'green']]):'')+
-      `<div class="card"><b class="cyan">V34掉落調整</b><br><span class="muted">一般怪會依地圖掉落池給補給、材料、卷軸與低機率裝備；高等地圖更容易出高階材料，四龍/傲慢/遺忘等區域會出專屬材料。</span></div><div class="page-list">${maps}</div>`;
+      `<div class="card"><b class="cyan">V37掉落調整</b><br><span class="muted">一般怪會依地圖掉落池給補給、材料、卷軸與低機率裝備；高等地圖更容易出高階材料，四龍/傲慢/遺忘等區域會出專屬材料。</span></div><div class="page-list">${maps}</div>`;
   };
 
-  Game.craftFilterV34=Game.craftFilterV34||Game.craftFilterV30||'weapon';
-  Game.countItemV34=function(id){return Object.values(this.s.inv||{}).filter(x=>x.id===id).reduce((a,x)=>a+(x.qty||0),0);};
-  Game.recipeOkV34=function(r){return Object.entries(r.req||{}).every(([id,q])=>this.countItemV34(id)>=q)&&(this.s.adena||0)>=(r.adena||0);};
-  Game.recipeReqV34=function(r){return Object.entries(r.req||{}).map(([id,q])=>{const have=this.countItemV34(id), d=DB.item[id]; return `<span class="pill ${have>=q?'green':'red'}">${esc(d?.name||id)} ${have}/${q}</span>`;}).join('');};
-  Game.craftCardV34=function(d){
+  Game.craftFilterV37=Game.craftFilterV37||Game.craftFilterV30||'weapon';
+  Game.countItemV37=function(id){return Object.values(this.s.inv||{}).filter(x=>x.id===id).reduce((a,x)=>a+(x.qty||0),0);};
+  Game.recipeOkV37=function(r){return Object.entries(r.req||{}).every(([id,q])=>this.countItemV37(id)>=q)&&(this.s.adena||0)>=(r.adena||0);};
+  Game.recipeReqV37=function(r){return Object.entries(r.req||{}).map(([id,q])=>{const have=this.countItemV37(id), d=DB.item[id]; return `<span class="pill ${have>=q?'green':'red'}">${esc(d?.name||id)} ${have}/${q}</span>`;}).join('');};
+  Game.craftCardV37=function(d){
     const r=(DB.recipes||{})[d.id]; if(!r) return '';
-    const ok=this.recipeOkV34(r), equip=EQUIP_TYPES.includes(d.type), usable=this.canUseByClass?this.canUseByClass(d):true;
-    return `<div class="craft-v34-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip?this.jobLineV34(d):''}<div class="drop-box">${this.recipeReqV34(r)}</div></div>`;
+    const ok=this.recipeOkV37(r), equip=EQUIP_TYPES.includes(d.type), usable=this.canUseByClass?this.canUseByClass(d):true;
+    return `<div class="craft-v37-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip?this.jobLineV37(d):''}<div class="drop-box">${this.recipeReqV37(r)}</div></div>`;
   };
-  Game.viewCraftV34=function(){
+  Game.viewCraftV37=function(){
     const cats=[['weapon','武器'],['armor','裝備'],['accessory','飾品'],['book','技能書'],['material','材料']];
-    const filter=this.craftFilterV34||'weapon';
+    const filter=this.craftFilterV37||'weapon';
     const recipes=Object.values(DB.recipes||{}).map(r=>this.def(r.id)).filter(Boolean);
     const list=recipes.filter(d=>{
       if(filter==='weapon') return d.type==='weapon';
@@ -3223,47 +3223,47 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       if(filter==='material') return d.type==='material';
       return true;
     }).sort((a,b)=>(RANK_VAL[b.rank||'N']-RANK_VAL[a.rank||'N'])||String(a.name).localeCompare(String(b.name),'zh-Hant'));
-    const ready=list.filter(d=>this.recipeOkV34(DB.recipes[d.id])).length;
+    const ready=list.filter(d=>this.recipeOkV37(DB.recipes[d.id])).length;
     const usable=list.filter(d=>!EQUIP_TYPES.includes(d.type)||(this.canUseByClass?this.canUseByClass(d):true)).length;
     const materialTotal=Object.values(this.s.inv||{}).filter(x=>this.def(x.id)?.type==='material').reduce((a,x)=>a+(x.qty||0),0);
-    return (this.hero?this.hero('製作 V34','製作頁比照變身/娃娃分類，並顯示武器、裝備、飾品可使用職業。'):'<h3 class="title">製作 V34</h3>')+
+    return (this.hero?this.hero('製作 V37','製作頁比照變身/娃娃分類，並顯示武器、裝備、飾品可使用職業。'):'<h3 class="title">製作 V37</h3>')+
       (this.statCards?this.statCards([['目前分類',cats.find(x=>x[0]===filter)?.[1]||filter,'gold'],['可製作',ready+'/'+list.length,'green'],['本職可用',usable+'/'+list.length,'blue'],['材料數量',materialTotal,'purple']]):'')+
-      `<div class="tabs page-tabs">${cats.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="craftFilterV34" data-arg="${id}">${n}</button>`).join('')}</div>`+
-      `<div class="craft-v34-grid">${list.map(d=>this.craftCardV34(d)).join('')||'<p class="muted">此分類目前沒有配方</p>'}</div>`;
+      `<div class="tabs page-tabs">${cats.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="craftFilterV37" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="craft-v37-grid">${list.map(d=>this.craftCardV37(d)).join('')||'<p class="muted">此分類目前沒有配方</p>'}</div>`;
   };
 
-  const oldRenderTabV34=Game.renderTab;
+  const oldRenderTabV37=Game.renderTab;
   Game.renderTab=function(){
     if(this.tab==='craft'){
       document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===this.tab));
-      this.$('content').innerHTML=this.viewCraftV34();
+      this.$('content').innerHTML=this.viewCraftV37();
       return;
     }
-    return oldRenderTabV34.call(this);
+    return oldRenderTabV37.call(this);
   };
-  const oldActionV34=Game.action;
+  const oldActionV37=Game.action;
   Game.action=function(a,arg,b){
-    if(a==='craftFilterV34'){this.craftFilterV34=arg||'weapon';this.renderTab();return;}
-    return oldActionV34.call(this,a,arg,b);
+    if(a==='craftFilterV37'){this.craftFilterV37=arg||'weapon';this.renderTab();return;}
+    return oldActionV37.call(this,a,arg,b);
   };
 
-  const oldAuditV34=Game.viewAudit;
+  const oldAuditV37=Game.viewAudit;
   Game.viewAudit=function(){
-    return oldAuditV34.call(this)+`<div class="card"><b class="gold">V34 修正</b><br><span class="muted">版本號已更新為 V34；怪物掉落池依地圖等級與區域屬性重整；製作清單已顯示可使用職業，武器依職業武器類型判斷，裝備/飾品預設全職業。</span></div>`;
+    return oldAuditV37.call(this)+`<div class="card"><b class="gold">V37 修正</b><br><span class="muted">版本號已更新為 V37；怪物掉落池依地圖等級與區域屬性重整；製作清單已顯示可使用職業，武器依職業武器類型判斷，裝備/飾品預設全職業。</span></div>`;
   };
-  const oldDashV34=Game.viewDash;
+  const oldDashV37=Game.viewDash;
   Game.viewDash=function(){
-    return oldDashV34.call(this)+`<div class="card"><b class="gold">V34 掉落與製作優化</b><br><span class="muted">怪物掉落已改為權重掉落池；製作頁新增可使用職業顯示，避免做出目前職業不能用的武器。</span></div>`;
+    return oldDashV37.call(this)+`<div class="card"><b class="gold">V37 掉落與製作優化</b><br><span class="muted">怪物掉落已改為權重掉落池；製作頁新增可使用職業顯示，避免做出目前職業不能用的武器。</span></div>`;
   };
 
   const css=document.createElement('style');
-  css.textContent=`.drop-group{margin-top:8px;padding:8px;background:#07101d;border:1px solid #26364e;border-radius:10px}.drop-group b{color:var(--gold)}.craft-v34-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.craft-v34-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:170px}.craft-v34-card .drop-box{margin-top:8px}.pill-row{display:flex;flex-wrap:wrap;gap:4px}.job-line{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.job-ok{border-color:#22c55e!important;color:#86efac!important;background:#082018!important}.job-no{border-color:#7f1d1d!important;color:#fca5a5!important;background:#1f0b0b!important}.job-disabled{opacity:.62;filter:saturate(.65)}`;
+  css.textContent=`.drop-group{margin-top:8px;padding:8px;background:#07101d;border:1px solid #26364e;border-radius:10px}.drop-group b{color:var(--gold)}.craft-v37-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.craft-v37-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:170px}.craft-v37-card .drop-box{margin-top:8px}.pill-row{display:flex;flex-wrap:wrap;gap:4px}.job-line{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}.job-ok{border-color:#22c55e!important;color:#86efac!important;background:#082018!important}.job-no{border-color:#7f1d1d!important;color:#fca5a5!important;background:#1f0b0b!important}.job-disabled{opacity:.62;filter:saturate(.65)}`;
   document.head.appendChild(css);
 })();
 
 
 
-/* === V34 CLEAN FULL PATCH ===
+/* === V37 CLEAN FULL PATCH ===
    目標：移除版本解說/完整度顯示、開放每日補償與 TJ 補償、提高副本次數。 */
 (function(){
   const $e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -3271,15 +3271,15 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const TODAY=()=>new Date().toISOString().slice(0,10);
   const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
 
-  document.title='天堂M Core Rebuild V34';
-  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V34';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V34';
+  document.title='天堂M Core Rebuild V37';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
 
   const oldBaseClean=Game.base;
   Game.base=function(cls){
     const s=oldBaseClean.call(this,cls);
-    s.version='core_rebuild_v34';
+    s.version='core_rebuild_v37';
     s.daily=Object.assign({},s.daily||{}, {
       dungeon:DUNGEON_MAX,boss:BOSS_MAX,tj:TJ_MAX,
       guildDungeon:GUILD_DUNGEON_MAX,guildBoss:GUILD_BOSS_MAX,
@@ -3295,7 +3295,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.ensure=function(){
     oldEnsureClean.call(this);
     const s=this.s; if(!s) return;
-    s.version='core_rebuild_v34';
+    s.version='core_rebuild_v37';
     s.daily=s.daily||{};
     s.tj=s.tj||{restore:1,card:1,enchant:1,history:[]};
     s.claimed=s.claimed||{};
@@ -3314,7 +3314,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       s.daily.diamondQuest=0;
       s.daily.mailDate='';
     }
-    if(!s.daily.v34Raised){
+    if(!s.daily.v37Raised){
       s.daily.dungeon=Math.max(Number(s.daily.dungeon)||0,DUNGEON_MAX);
       s.daily.boss=Math.max(Number(s.daily.boss)||0,BOSS_MAX);
       s.daily.guildDungeon=Math.max(Number(s.daily.guildDungeon)||0,GUILD_DUNGEON_MAX);
@@ -3323,7 +3323,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       s.daily.tjRestore=Math.max(Number(s.daily.tjRestore)||0,1);
       s.daily.tjCard=Math.max(Number(s.daily.tjCard)||0,1);
       s.daily.tjEnchant=Math.max(Number(s.daily.tjEnchant)||0,1);
-      s.daily.v34Raised=true;
+      s.daily.v37Raised=true;
     }
   };
 
@@ -3341,7 +3341,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     this.$('tabs').querySelectorAll('.tab').forEach(b=>b.onclick=()=>{this.tab=b.dataset.tab;this.renderTab();});
   };
 
-  Game.cleanPowerV34=function(){
+  Game.cleanPowerV37=function(){
     const st=this.total();
     return Math.max(0,Math.floor((st.dmg+this.s.lv*2)*18+(10-st.ac)*12+(st.dr||0)*35+(st.hit||0)*15+this.s.lv*42));
   };
@@ -3351,7 +3351,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const mailClaimed=this.s.daily.mailDate===TODAY();
     return (this.hero?this.hero('總覽',`Lv.${this.s.lv} ${this.cls().name}｜${this.map().name}`):'<h3 class="title">總覽</h3>')+
       (this.statCards?this.statCards([
-        ['戰力',$n(this.cleanPowerV34()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
+        ['戰力',$n(this.cleanPowerV37()),'gold'],['金幣',$n(this.s.adena),'gold'],['鑽石',$n(this.s.diamond),'cyan'],['葉子',Math.floor(this.s.leaf||0)+'/200','green'],
         ['副本次數',this.s.daily.dungeon+'/'+DUNGEON_MAX,'blue'],['世界王',this.s.daily.boss+'/'+BOSS_MAX,'red']
       ]):'')+
       `<div class="two-col"><div class="card"><b>每日補償</b><p class="muted">每日可領取一次。</p><button data-act="mail" class="gold" ${mailClaimed?'disabled':''}>${mailClaimed?'今日已領取':'領取每日補償'}</button></div><div class="card"><b>TJ補償</b><p class="muted">今日剩餘 ${this.s.daily.tj||0} 次。</p><button data-act="tj" class="gold" ${(this.s.daily.tj||0)>0?'':'disabled'}>領取 TJ 補償</button></div></div>`+
@@ -3447,7 +3447,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 </script>
 
 
-<!-- === V34 MAP BOOK DROP SEARCH FIX === -->
+<!-- === V37 MAP BOOK DROP SEARCH FIX === -->
 <script>
 (function(){
   const $e=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -3498,7 +3498,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     }
   };
 
-  Game.mapProgressV34Fixed=function(map){
+  Game.mapProgressV37Fixed=function(map){
     this.ensure();
     const explore=clamp(this.s.codexMap?.[map.id]||0,0,100);
     const mons=monsOf(map), bosses=bossOf(map);
@@ -3509,7 +3509,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const total=Math.floor(explore*0.5+monPct*0.35+bossPct*0.15);
     return {explore,mons,bosses,monCount,bossCount,monPct,bossPct,total};
   };
-  Game.mapBookReadyV31=function(map){return this.mapProgressV34Fixed(map).total>=100;};
+  Game.mapBookReadyV31=function(map){return this.mapProgressV37Fixed(map).total>=100;};
 
   const oldSpawn=Game.spawn;
   Game.spawn=function(){
@@ -3539,13 +3539,13 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
   const oldAction=Game.action;
   Game.action=function(a,arg,b){
-    if(a==='mapDropSearchV34'){
-      const el=document.getElementById('mapDropSearchV34');
-      this.mapDropSearchV34=(el&&el.value||'').trim();
+    if(a==='mapDropSearchV37'){
+      const el=document.getElementById('mapDropSearchV37');
+      this.mapDropSearchV37=(el&&el.value||'').trim();
       this.renderTab();return;
     }
-    if(a==='clearMapDropSearchV34'){
-      this.mapDropSearchV34='';this.mapBookFilterV31='all';this.renderTab();return;
+    if(a==='clearMapDropSearchV37'){
+      this.mapDropSearchV37='';this.mapBookFilterV31='all';this.renderTab();return;
     }
     if(a==='goMap'){
       this.ensure();
@@ -3576,11 +3576,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.viewMapBookV23=function(){
     this.ensure();
     const filter=this.mapBookFilterV31||'all', sort=this.mapBookSortV31||'progress';
-    const q=String(this.mapDropSearchV34||'').trim().toLowerCase();
+    const q=String(this.mapDropSearchV37||'').trim().toLowerCase();
     const filters=[['all','全部'],['current','目前地圖'],['undiscovered','未探索'],['ready','可領獎'],['claimed','已領取']];
     const sorts=[['progress','進度'],['level','等級'],['name','名稱'],['drops','掉落數']];
     let maps=(DB.maps||[]).slice().filter(map=>{
-      const p=this.mapProgressV34Fixed(map), found=!!this.s.mapDiscovered?.[map.id], ready=this.mapBookReadyV31(map), claimed=!!this.s.mapClaimed?.[map.id];
+      const p=this.mapProgressV37Fixed(map), found=!!this.s.mapDiscovered?.[map.id], ready=this.mapBookReadyV31(map), claimed=!!this.s.mapClaimed?.[map.id];
       if(q && !searchableText(map).includes(q)) return false;
       if(filter==='current') return map.id===this.s.map;
       if(filter==='undiscovered') return !found;
@@ -3592,14 +3592,14 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       if(sort==='level') return (a.min||0)-(b.min||0);
       if(sort==='name') return String(a.name).localeCompare(String(b.name),'zh-Hant');
       if(sort==='drops') return dropsOf(b).length-dropsOf(a).length;
-      return this.mapProgressV34Fixed(b).total-this.mapProgressV34Fixed(a).total;
+      return this.mapProgressV37Fixed(b).total-this.mapProgressV37Fixed(a).total;
     });
     const all=DB.maps||[];
     const discovered=all.filter(m=>this.s.mapDiscovered?.[m.id]).length;
     const ready=all.filter(m=>this.mapBookReadyV31(m)&&!this.s.mapClaimed?.[m.id]).length;
     const claimed=all.filter(m=>this.s.mapClaimed?.[m.id]).length;
     const rows=maps.map(map=>{
-      const p=this.mapProgressV34Fixed(map), found=!!this.s.mapDiscovered?.[map.id], ready=this.mapBookReadyV31(map)&&!this.s.mapClaimed?.[map.id], claimed=!!this.s.mapClaimed?.[map.id];
+      const p=this.mapProgressV37Fixed(map), found=!!this.s.mapDiscovered?.[map.id], ready=this.mapBookReadyV31(map)&&!this.s.mapClaimed?.[map.id], claimed=!!this.s.mapClaimed?.[map.id];
       const drops=dropsOf(map);
       const dropHtml=drops.map(id=>`<span class="pill ${q&&itemName(id).toLowerCase().includes(q)?'gold':''}">${$e(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
       const monHtml=p.mons.map(n=>`<span class="pill ${(this.s.codexMon?.[n]||0)>0?'green':''}">${$e(n)} ${this.s.codexMon?.[n]||0}</span>`).join('')||'<span class="muted">無怪物資料</span>';
@@ -3616,7 +3616,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     }).join('');
     return (this.hero?this.hero('地圖圖鑑','地圖探索、怪物登錄、Boss登錄、永久獎勵與掉落搜尋。'):'<h3 class="title">地圖圖鑑</h3>')+
       (this.statCards?this.statCards([['地圖數',all.length,'gold'],['已探索',discovered+'/'+all.length,'green'],['可領獎',ready,'red'],['已領取',claimed,'blue'],['搜尋結果',maps.length,'cyan']]):'')+
-      `<div class="map-search-box"><input id="mapDropSearchV34" type="search" placeholder="搜尋地圖、怪物、Boss、掉落物，例如：祝福粉末、武卷、龍鱗" value="${$e(this.mapDropSearchV34||'')}"><button data-act="mapDropSearchV34" class="gold">搜尋掉落</button><button data-act="clearMapDropSearchV34">清除</button></div>`+
+      `<div class="map-search-box"><input id="mapDropSearchV37" type="search" placeholder="搜尋地圖、怪物、Boss、掉落物，例如：祝福粉末、武卷、龍鱗" value="${$e(this.mapDropSearchV37||'')}"><button data-act="mapDropSearchV37" class="gold">搜尋掉落</button><button data-act="clearMapDropSearchV37">清除</button></div>`+
       `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="mapBookFilterV31" data-arg="${id}">${n}</button>`).join('')}</div>`+
       `<div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="mapBookSortV31" data-arg="${id}">排序：${n}</button>`).join('')}</div>`+
       `<div class="page-list">${rows||'<p class="muted">沒有找到符合條件的地圖或掉落物</p>'}</div>`;
@@ -3637,8 +3637,8 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 })();
 
 
-/* === V35 SKILL BOOK DROP / GUNNER EQUIPMENT FIX ===
-   1) 全站版本升級 V35
+/* === V37 SKILL BOOK DROP / GUNNER EQUIPMENT FIX ===
+   1) 全站版本升級 V37
    2) 怪物掉落技能書補全：所有職業技能書依地圖等級與技能階級加入掉落池與地圖圖鑑搜尋
    3) 修復槍手武器可用判定：步槍/手槍/槍械類型統一視為 gun，槍手可正確裝備與製作
 */
@@ -3659,26 +3659,26 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   function putItem(id,o){DB.item[id]=Object.assign({id,type:'weapon',rank:'R',safe:6,price:1000},DB.item[id]||{},o,{id});}
   function recipe(id,req,adena,note){if(DB.item[id]){DB.recipes=DB.recipes||{};DB.recipes[id]={id,req,adena,note};}}
 
-  document.title='天堂M Core Rebuild V35';
-  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V35';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V35';
-  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V35：技能書掉落補全、槍手武器修復、地圖掉落搜尋支援技能書。';
-  Game.versionLabel='V35';
+  document.title='天堂M Core Rebuild V37';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V37：技能書掉落補全、槍手武器修復、地圖掉落搜尋支援技能書。';
+  Game.versionLabel='V37';
 
   if(DB.classes&&DB.classes.gunner){
     DB.classes.gunner.weapons=uniq((DB.classes.gunner.weapons||[]).concat(['gun','rifle','pistol','handgun','launcher','cannon','hand_cannon']));
   }
 
   // 槍手專用/共用槍械補齊，避免製作或掉落池沒有可用武器。
-  putItem('v35_gunner_revolver',{name:'獵魔左輪',type:'weapon',weapon:'gun',dmg:16,rank:'R',price:28000,stat:{dex:1}});
-  putItem('v35_gunner_rifle',{name:'精準步槍',type:'weapon',weapon:'gun',dmg:26,rank:'SR',price:90000,stat:{dex:2,hit:2}});
-  putItem('v35_gunner_sniper',{name:'死亡狙擊槍',type:'weapon',weapon:'gun',dmg:40,rank:'SSR',price:320000,stat:{dex:3,hit:5,dmg:4}});
-  putItem('v35_gunner_hellfire',{name:'地獄火步槍',type:'weapon',weapon:'gun',dmg:55,rank:'L',price:1200000,stat:{dex:4,hit:8,dmg:8}});
-  putItem('v35_gunner_mythic',{name:'神話審判者步槍',type:'weapon',weapon:'gun',dmg:78,rank:'M',price:3000000,stat:{dex:7,hit:14,dmg:18,dr:3}});
-  recipe('v35_gunner_rifle',{'m18_weapon_frag':36,'m18_iron_ingot':8,'m18_powder':8},160000,'槍手武器製作');
-  recipe('v35_gunner_sniper',{'m18_weapon_frag':80,'m18_steel_ingot':10,'m18_oriharucon':4,'m18_hero_scroll_piece':5},480000,'槍手英雄武器製作');
-  recipe('v35_gunner_hellfire',{'m18_weapon_frag':140,'m18_oriharucon':10,'m18_dragon_blood':4,'m18_legend_scroll_piece':4},1600000,'槍手傳說武器製作');
-  recipe('v35_gunner_mythic',{'m18_weapon_frag':260,'m18_dragon_metal':20,'m18_dragon_heart':4,'m18_myth_scroll_piece':5},7200000,'槍手神話武器製作');
+  putItem('v37_gunner_revolver',{name:'獵魔左輪',type:'weapon',weapon:'gun',dmg:16,rank:'R',price:28000,stat:{dex:1}});
+  putItem('v37_gunner_rifle',{name:'精準步槍',type:'weapon',weapon:'gun',dmg:26,rank:'SR',price:90000,stat:{dex:2,hit:2}});
+  putItem('v37_gunner_sniper',{name:'死亡狙擊槍',type:'weapon',weapon:'gun',dmg:40,rank:'SSR',price:320000,stat:{dex:3,hit:5,dmg:4}});
+  putItem('v37_gunner_hellfire',{name:'地獄火步槍',type:'weapon',weapon:'gun',dmg:55,rank:'L',price:1200000,stat:{dex:4,hit:8,dmg:8}});
+  putItem('v37_gunner_mythic',{name:'神話審判者步槍',type:'weapon',weapon:'gun',dmg:78,rank:'M',price:3000000,stat:{dex:7,hit:14,dmg:18,dr:3}});
+  recipe('v37_gunner_rifle',{'m18_weapon_frag':36,'m18_iron_ingot':8,'m18_powder':8},160000,'槍手武器製作');
+  recipe('v37_gunner_sniper',{'m18_weapon_frag':80,'m18_steel_ingot':10,'m18_oriharucon':4,'m18_hero_scroll_piece':5},480000,'槍手英雄武器製作');
+  recipe('v37_gunner_hellfire',{'m18_weapon_frag':140,'m18_oriharucon':10,'m18_dragon_blood':4,'m18_legend_scroll_piece':4},1600000,'槍手傳說武器製作');
+  recipe('v37_gunner_mythic',{'m18_weapon_frag':260,'m18_dragon_metal':20,'m18_dragon_heart':4,'m18_myth_scroll_piece':5},7200000,'槍手神話武器製作');
 
   // 所有技能書補齊並統一 skill / bookSkill 欄位。
   Object.values(DB.skills||{}).forEach(sk=>{
@@ -3705,18 +3705,18 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     map.skillBookDrops=books;
     map.drops=uniq([...(map.drops||[]),...books]);
     // 槍手武器加入中高階地圖掉落
-    if((map.max||0)>=20) map.drops=uniq(map.drops.concat(['v35_gunner_revolver']));
-    if((map.max||0)>=45) map.drops=uniq(map.drops.concat(['v35_gunner_rifle']));
-    if((map.max||0)>=65) map.drops=uniq(map.drops.concat(['v35_gunner_sniper']));
-    if((map.max||0)>=80) map.drops=uniq(map.drops.concat(['v35_gunner_hellfire']));
-    if((map.max||0)>=90) map.drops=uniq(map.drops.concat(['v35_gunner_mythic']));
+    if((map.max||0)>=20) map.drops=uniq(map.drops.concat(['v37_gunner_revolver']));
+    if((map.max||0)>=45) map.drops=uniq(map.drops.concat(['v37_gunner_rifle']));
+    if((map.max||0)>=65) map.drops=uniq(map.drops.concat(['v37_gunner_sniper']));
+    if((map.max||0)>=80) map.drops=uniq(map.drops.concat(['v37_gunner_hellfire']));
+    if((map.max||0)>=90) map.drops=uniq(map.drops.concat(['v37_gunner_mythic']));
   });
 
   const oldEnsure=Game.ensure;
   Game.ensure=function(){
     oldEnsure.call(this);
     if(this.s){
-      this.s.version='core_rebuild_v35_skillbook_gunner_fix';
+      this.s.version='core_rebuild_v37_skillbook_gunner_fix';
       if(this.s.cls==='gunner'&&DB.classes.gunner) DB.classes.gunner.weapons=uniq((DB.classes.gunner.weapons||[]).concat(['gun','rifle','pistol','handgun','launcher','cannon','hand_cannon']));
     }
   };
@@ -3726,26 +3726,26 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const s=oldBase.call(this,cls);
     if(cls==='gunner'){
       Object.keys(s.inv||{}).forEach(k=>{if(s.inv[k]?.id==='short_sword') delete s.inv[k];});
-      s.inv['v35_gunner_revolver|0|start']={id:'v35_gunner_revolver',qty:1,enchant:0};
+      s.inv['v37_gunner_revolver|0|start']={id:'v37_gunner_revolver',qty:1,enchant:0};
     }
-    s.version='core_rebuild_v35_skillbook_gunner_fix';
+    s.version='core_rebuild_v37_skillbook_gunner_fix';
     return s;
   };
 
   // 職業可用判定修復：槍械別名一律視為 gun，槍手可用。
-  const limitedV35={
+  const limitedV37={
     dark_robe:['wizard'], zero_staff:['wizard'], demon_staff:['wizard'], ice_queen_staff:['wizard'], fafu_staff:['wizard'],
     saiha_bow:['elf'], moon_bow:['elf'], angel_slayer:['elf'], gaia_bow:['elf'], lindvior_bow:['elf'], crossbow:['elf'],
     roaring_dual:['darkelf'], shadow_dual:['darkelf'], rondu_claw:['darkelf'], blood_claw:['darkelf'],
     chain_sword:['dragon'], mortal_chain:['dragon'], titan_axe:['berserker'], soul_scythe:['reaper'], thunder_spear:['thunder'], holy_spear:['holyknight','thunder'], zephyr_spear:['holyknight','thunder'],
     dragon_slayer:['knight','berserker'], mythic_excalibur:['prince','knight','holyknight','magic_swordsman'],
-    gunner_rifle:['gunner'], silver_rifle:['gunner'], demon_rifle:['gunner'], mythic_rifle:['gunner'], v35_gunner_revolver:['gunner'], v35_gunner_rifle:['gunner'], v35_gunner_sniper:['gunner'], v35_gunner_hellfire:['gunner'], v35_gunner_mythic:['gunner']
+    gunner_rifle:['gunner'], silver_rifle:['gunner'], demon_rifle:['gunner'], mythic_rifle:['gunner'], v37_gunner_revolver:['gunner'], v37_gunner_rifle:['gunner'], v37_gunner_sniper:['gunner'], v37_gunner_hellfire:['gunner'], v37_gunner_mythic:['gunner']
   };
   Game.itemJobs=function(d){
     if(!d) return [];
     if(Array.isArray(d.allowedClasses)&&d.allowedClasses.length) return d.allowedClasses;
     if(Array.isArray(d.jobs)&&d.jobs.length) return d.jobs;
-    if(limitedV35[d.id]) return limitedV35[d.id];
+    if(limitedV37[d.id]) return limitedV37[d.id];
     if(d.type==='book'){
       const sk=DB.skills[d.skill||d.bookSkill];
       return sk&&sk.classId?[sk.classId]:classIds();
@@ -3759,7 +3759,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   };
   Game.canUseByClass=function(d,cid=this.s?.cls){return !!cid&&this.itemJobs(d).includes(cid);};
   Game.canEquipItem=function(d){return !!d&&EQUIP_TYPES.includes(d.type)&&this.canUseByClass(d);};
-  Game.classNamesForItemV34=function(d){
+  Game.classNamesForItemV37=function(d){
     if(!d) return ['未知'];
     if(d.type==='weapon'||d.type==='book'||Array.isArray(d.allowedClasses)||Array.isArray(d.jobs)){
       const jobs=this.itemJobs(d); return jobs.length?jobs.map(id=>DB.classes[id]?.name||id):['未設定'];
@@ -3767,16 +3767,16 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     if(EQUIP_TYPES.includes(d.type)) return ['全職業'];
     return ['全職業'];
   };
-  Game.jobLineV34=function(d){
-    const names=this.classNamesForItemV34(d);
+  Game.jobLineV37=function(d){
+    const names=this.classNamesForItemV37(d);
     const usable=this.canUseByClass?this.canUseByClass(d):true;
     if(names.length===1&&names[0]==='全職業') return `<div class="job-line"><span class="pill job-ok">全職業可用</span></div>`;
     return `<div class="job-line"><span class="pill ${usable?'job-ok':'job-no'}">目前職業：${usable?'可使用':'不可使用'}</span>${names.map(n=>`<span class="pill ${usable?'job-ok':'job-no'}">${esc(n)}</span>`).join('')}</div>`;
   };
 
-  // 技能書掉落池補強：V34 原掉落池外，依地圖等級加入技能書權重。
-  const oldBuildDropPool=Game.buildDropPoolV34;
-  Game.buildDropPoolV34=function(map){
+  // 技能書掉落池補強：V37 原掉落池外，依地圖等級加入技能書權重。
+  const oldBuildDropPool=Game.buildDropPoolV37;
+  Game.buildDropPoolV37=function(map){
     const pool=oldBuildDropPool?oldBuildDropPool.call(this,map):[];
     const lv=Number(map?.max||map?.min||1);
     bookIdsForMap(map).forEach(id=>{
@@ -3787,7 +3787,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       if(lv>=90&&rank>=5) weight+=1;
       pool.push({id,weight,qtyMin:1,qtyMax:1,tag:'技能書掉落'});
     });
-    ['v35_gunner_revolver','v35_gunner_rifle','v35_gunner_sniper','v35_gunner_hellfire','v35_gunner_mythic'].forEach((id,i)=>{
+    ['v37_gunner_revolver','v37_gunner_rifle','v37_gunner_sniper','v37_gunner_hellfire','v37_gunner_mythic'].forEach((id,i)=>{
       if(DB.item[id]&&lv>=[15,35,55,75,88][i]) pool.push({id,weight:Math.max(1,5-i),qtyMin:1,qtyMax:1,tag:'槍手武器掉落'});
     });
     return pool;
@@ -3814,34 +3814,34 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     if(DB.item[id]){this.addItem(id,1,0);this.log(`技能書掉落：${DB.item[id].name}`,'green');}
   };
 
-  Game.dropPreviewV35=function(map){
-    const pool=this.buildDropPoolV34(map);
+  Game.dropPreviewV37=function(map){
+    const pool=this.buildDropPoolV37(map);
     const grouped={};
     pool.forEach(x=>{const d=DB.item[x.id]; if(!d) return; const type=d.type==='book'?'技能書':d.type==='weapon'?'武器':ARMOR_TYPES.includes(d.type)?'裝備':ACC_TYPES.includes(d.type)?'飾品':d.type==='material'?'材料':d.type==='scroll'?'卷軸':d.type==='potion'?'藥水':'其他'; grouped[type]=grouped[type]||[]; if(!grouped[type].some(y=>y.id===d.id)) grouped[type].push(d);});
     return Object.entries(grouped).map(([type,list])=>`<div class="drop-group"><b>${esc(type)}</b><div class="pill-row">${list.slice(0,20).map(d=>`<span class="pill r-${d.rank||'N'}" title="${esc(d.name)}">${esc(d.name)}</span>`).join('')}</div></div>`).join('');
   };
   Game.viewHunt=function(){
     const maps=(DB.maps||[]).map(m=>{
-      const active=this.s.map===m.id, rate=this.dropRateV34?Math.round(this.dropRateV34(m,false)*100):0;
+      const active=this.s.map===m.id, rate=this.dropRateV37?Math.round(this.dropRateV37(m,false)*100):0;
       const bookCount=bookIdsForMap(m).length;
-      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜掉落率約 ${rate}%｜技能書 ${bookCount} 本</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV35(m)}</div>`;
+      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜掉落率約 ${rate}%｜技能書 ${bookCount} 本</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV37(m)}</div>`;
     }).join('');
-    return (this.hero?this.hero('狩獵 / 怪物掉落 V35','技能書已依地圖等級補入掉落池；槍手武器也納入掉落與製作。'):'<h3 class="title">狩獵 / 怪物掉落 V35</h3>')+
+    return (this.hero?this.hero('狩獵 / 怪物掉落 V37','技能書已依地圖等級補入掉落池；槍手武器也納入掉落與製作。'):'<h3 class="title">狩獵 / 怪物掉落 V37</h3>')+
       (this.statCards?this.statCards([['地圖數',(DB.maps||[]).length,'blue'],['技能書',allBookIds().length,'gold'],['目前地圖',esc(this.map().name),'green'],['今日擊殺',this.s.daily.kills||0,'cyan']]):'')+
       `<div class="page-list">${maps}</div>`;
   };
 
-  // 製作頁保留 V34 分類，但標題與職業判定改 V35。
-  Game.craftCardV34=function(d){
+  // 製作頁保留 V37 分類，但標題與職業判定改 V37。
+  Game.craftCardV37=function(d){
     const r=(DB.recipes||{})[d.id]; if(!r) return '';
-    const ok=this.recipeOkV34?this.recipeOkV34(r):true, equip=EQUIP_TYPES.includes(d.type), usable=!equip||(this.canUseByClass?this.canUseByClass(d):true);
-    const req=this.recipeReqV34?this.recipeReqV34(r):'';
-    return `<div class="craft-v34-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip||d.type==='book'?this.jobLineV34(d):''}<div class="drop-box">${req}</div></div>`;
+    const ok=this.recipeOkV37?this.recipeOkV37(r):true, equip=EQUIP_TYPES.includes(d.type), usable=!equip||(this.canUseByClass?this.canUseByClass(d):true);
+    const req=this.recipeReqV37?this.recipeReqV37(r):'';
+    return `<div class="craft-v37-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip||d.type==='book'?this.jobLineV37(d):''}<div class="drop-box">${req}</div></div>`;
   };
-  const oldViewCraftV34=Game.viewCraftV34;
-  Game.viewCraftV34=function(){
-    const html=oldViewCraftV34?oldViewCraftV34.call(this):'';
-    return html.replace(/製作 V34/g,'製作 V35').replace(/製作頁比照變身\/娃娃分類，並顯示武器、裝備、飾品可使用職業。/g,'製作頁分類顯示，武器、裝備、飾品與技能書會標示可使用職業；槍手槍械已修復。');
+  const oldViewCraftV37=Game.viewCraftV37;
+  Game.viewCraftV37=function(){
+    const html=oldViewCraftV37?oldViewCraftV37.call(this):'';
+    return html.replace(/製作 V37/g,'製作 V37').replace(/製作頁比照變身\/娃娃分類，並顯示武器、裝備、飾品可使用職業。/g,'製作頁分類顯示，武器、裝備、飾品與技能書會標示可使用職業；槍手槍械已修復。');
   };
 
   // 地圖圖鑑搜尋提示改為技能書可搜；因技能書已加入 map.drops，既有搜尋掉落可直接搜尋。
@@ -3863,10 +3863,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 })();
 
 
-/* === V36 MAP BOOK BOSS KILL HOTFIX ===
+/* === V37 MAP BOOK BOSS KILL HOTFIX ===
    修復：地圖圖鑑中的 Boss 名稱若不是原本 spawn() 判斷式的「王/龍/安塔/巴拉」關鍵字，
    例如「巴風特侍徒」，擊殺後不會登錄到地圖圖鑑 Boss 進度。
-   1) 以地圖圖鑑 bossOf()/mapProgressV34Fixed 的 Boss 清單為準。
+   1) 以地圖圖鑑 bossOf()/mapProgressV37Fixed 的 Boss 清單為準。
    2) spawn 後若目標名稱屬於該地圖 Boss 清單，強制標記為 Boss。
    3) kill 後保證 codexBoss 至少 +1，不再因 mon.boss=false 漏登錄。
 */
@@ -3874,15 +3874,15 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const safeE=(typeof E==='function')?E:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
   const uniq=arr=>Array.from(new Set((arr||[]).filter(Boolean)));
 
-  document.title='天堂M Core Rebuild V36';
+  document.title='天堂M Core Rebuild V37';
   const mainTitle=document.querySelector('#app .top .title');
-  if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V36';
+  if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1');
-  if(startTitle) startTitle.textContent='天堂M Core Rebuild V36';
+  if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
 
-  Game.versionLabel='V36';
+  Game.versionLabel='V37';
 
-  Game.mapBossNamesV36=function(map){
+  Game.mapBossNamesV37=function(map){
     if(!map) return [];
     const bossKeywords=/王|boss|龍|安塔|巴拉|法利|林德|吉爾|巴風|巴風特|死亡騎士|巫妖|木乃伊|吸血鬼|巨蟻|不死鳥|惡魔|克特|賽尼斯|侍徒|祭司|守護|首領|隊長/i;
     const fromMon=(map.mons||[]).filter(n=>bossKeywords.test(String(n)));
@@ -3895,17 +3895,17 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return uniq(fromMon.concat(fromBoss));
   };
 
-  Game.isMapBossV36=function(name,map){
+  Game.isMapBossV37=function(name,map){
     const n=String(name||'');
     if(!n) return false;
-    return this.mapBossNamesV36(map||this.map()).some(b=>b===n || n.includes(b) || b.includes(n));
+    return this.mapBossNamesV37(map||this.map()).some(b=>b===n || n.includes(b) || b.includes(n));
   };
 
-  // 覆寫進度計算，Boss 清單改用 V36 統一清單，避免畫面與擊殺判定不同步。
-  const oldProgress=Game.mapProgressV34Fixed;
-  Game.mapProgressV34Fixed=function(map){
+  // 覆寫進度計算，Boss 清單改用 V37 統一清單，避免畫面與擊殺判定不同步。
+  const oldProgress=Game.mapProgressV37Fixed;
+  Game.mapProgressV37Fixed=function(map){
     const p=oldProgress?oldProgress.call(this,map):{explore:0,mons:[],bosses:[],monCount:0,bossCount:0,monPct:0,bossPct:100,total:0};
-    const bosses=this.mapBossNamesV36(map);
+    const bosses=this.mapBossNamesV37(map);
     const bossCount=bosses.filter(n=>(this.s?.codexBoss?.[n]||0)>0).length;
     const bossPct=bosses.length?Math.floor(bossCount/bosses.length*100):100;
     const explore=Math.max(0,Math.min(100,p.explore||0));
@@ -3920,7 +3920,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     if(this.s&&this.s.mon){
       const map=this.map();
       this.s.mon.map=this.s.map;
-      if(this.isMapBossV36(this.s.mon.name,map)){
+      if(this.isMapBossV37(this.s.mon.name,map)){
         this.s.mon.boss=true;
         this.s.mon.max=Math.max(this.s.mon.max||1,this.s.mon.hp||1);
       }
@@ -3931,7 +3931,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.kill=function(mon,bonus){
     const mapId=(mon&&mon.map)||this.s?.map;
     const map=(DB.maps||[]).find(m=>m.id===mapId)||this.map();
-    const isBoss=!!(mon&&this.isMapBossV36(mon.name,map));
+    const isBoss=!!(mon&&this.isMapBossV37(mon.name,map));
     let before=0;
     if(isBoss){
       this.s.codexBoss=this.s.codexBoss||{};
@@ -3964,6 +3964,141 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return html;
   };
 })();
+
+
+/* === V37 圖鑑與狩獵 UI 精簡版 ===
+   1) 狩獵地圖右側資訊不顯示掉落清單。
+   2) 狩獵頁只顯示地圖等級、怪物數、Boss數、掉落數與前往按鈕。
+   3) 地圖圖鑑重製：保留掉落搜尋，但地圖卡片預設不展開掉落。
+   4) Boss/怪物擊殺統計維持 V36 修復邏輯。
+*/
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const uniq=a=>[...new Set((a||[]).filter(Boolean))];
+  const itemName=id=>(DB.item&&DB.item[id]?DB.item[id].name:id);
+  const dropsOf=map=>uniq([...(map?.drops||[]),...(map?.materialDrops||[])]).filter(id=>DB.item&&DB.item[id]);
+  const monsOf=map=>uniq(map?.mons||[]);
+  const bossOf=map=>{
+    if(Game.mapBossNamesV37) return Game.mapBossNamesV37(map);
+    if(Game.mapBossNamesV36) return Game.mapBossNamesV36(map);
+    return monsOf(map).filter(n=>/王|龍|Boss|BOSS|巴風特|死亡騎士|巫妖|木乃伊|安塔|巴拉|法利|林德|吉爾|侍徒/.test(String(n)));
+  };
+  const statLine=o=>Object.entries(o||{}).map(([k,v])=>`${k}${v>=0?'+':''}${v}`).join('、')||'無';
+
+  document.title='天堂M Core Rebuild V37';
+  const setText=(sel,txt)=>{const el=document.querySelector(sel); if(el) el.textContent=txt;};
+  setText('#start h1','天堂M Core Rebuild V37');
+  const startDesc=document.querySelector('#start p');
+  if(startDesc) startDesc.textContent='單機HTML｜V37 圖鑑與狩獵UI精簡版。';
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(this.s) this.s.version='core_rebuild_v37';
+    this.pageState=this.pageState||{};
+  };
+
+  const oldRenderStatus=Game.renderStatus;
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    const m=this.map?this.map():null;
+    const mi=this.$&&this.$('mapInfo');
+    if(mi&&m){
+      const bosses=bossOf(m);
+      mi.innerHTML=`<div><b>${esc(m.name)}</b> Lv.${m.min}-${m.max}</div><div>怪物 ${monsOf(m).length}｜Boss ${bosses.length}｜掉落資料請至「地圖圖鑑 / 怪物圖鑑 / BOSS圖鑑 / 搜尋掉落」查看</div>`;
+    }
+    const title=document.querySelector('#app .top .title');
+    if(title) title.textContent='天堂M Core Rebuild V37';
+  };
+
+  Game.viewHunt=function(){
+    const rows=(DB.maps||[]).map(m=>{
+      const active=this.s.map===m.id;
+      const bosses=bossOf(m);
+      const rate=this.dropRateV37?Math.round(this.dropRateV37(m,false)*100):(this.dropRateV34?Math.round(this.dropRateV34(m,false)*100):0);
+      return `<div class="list-card ${active?'active':''}">
+        <div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物 ${monsOf(m).length}｜Boss ${bosses.length}｜掉落 ${dropsOf(m).length}｜掉落率約 ${rate}%</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>
+        <div class="mini muted">掉落清單已移至地圖圖鑑與搜尋掉落。</div>
+      </div>`;
+    }).join('');
+    return (this.hero?this.hero('狩獵地圖','地圖清單已精簡，不再直接顯示掉落。'):'<h3 class="title">狩獵地圖</h3>')+
+      (this.statCards?this.statCards([['地圖',DB.maps.length,'gold'],['目前地圖',esc(this.map().name),'blue'],['今日擊殺',this.s.daily?.kills||0,'green']]):'')+
+      `<div class="page-list">${rows}</div>`;
+  };
+
+  Game.mapProgressV37=function(map){
+    const p=this.mapProgressV34Fixed?this.mapProgressV34Fixed(map):(this.mapProgressV31?this.mapProgressV31(map):null);
+    if(p) return p;
+    const mons=monsOf(map), bosses=bossOf(map);
+    const explore=Math.max(0,Math.min(100,this.s.codexMap?.[map.id]||0));
+    const monCount=mons.filter(n=>(this.s.codexMon?.[n]||0)>0).length;
+    const bossCount=bosses.filter(n=>(this.s.codexBoss?.[n]||0)>0).length;
+    const monPct=mons.length?Math.floor(monCount/mons.length*100):100;
+    const bossPct=bosses.length?Math.floor(bossCount/bosses.length*100):100;
+    const total=Math.floor(explore*.5+monPct*.35+bossPct*.15);
+    return {explore,mons,bosses,monCount,bossCount,monPct,bossPct,total};
+  };
+
+  Game.viewMapBookV23=function(){
+    this.pageState=this.pageState||{};
+    const q=String(this.pageState.mapDropSearch||'').trim().toLowerCase();
+    const all=DB.maps||[];
+    const matched=q?all.filter(m=>dropsOf(m).some(id=>String(itemName(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q))):[];
+    const cards=all.map(map=>{
+      const p=this.mapProgressV37(map), drops=dropsOf(map), bosses=p.bosses||bossOf(map);
+      const active=this.s.map===map.id;
+      const claimed=this.s.mapClaimed&&this.s.mapClaimed[map.id];
+      const reward=this.mapRewardFixed?this.mapRewardFixed(map):(this.mapRewardV31?this.mapRewardV31(map):{});
+      const canClaim=(p.total||0)>=100&&!claimed;
+      const monHtml=(p.mons||monsOf(map)).map(n=>`<span class="pill ${(this.s.codexMon?.[n]||0)>0?'green':''}">${esc(n)} ${(this.s.codexMon?.[n]||0)}</span>`).join('')||'<span class="muted">無</span>';
+      const bossHtml=bosses.map(n=>`<span class="pill ${(this.s.codexBoss?.[n]||0)>0?'green':''}">${esc(n)} ${(this.s.codexBoss?.[n]||0)}</span>`).join('')||'<span class="muted">無</span>';
+      return `<div class="map-v37-card ${active?'active':''}">
+        <div class="row"><div><b class="gold">${esc(map.name)}</b> <span class="pill">Lv.${map.min}-${map.max}</span> ${claimed?'<span class="pill green">已領取</span>':''}<br><span class="muted">永久獎勵：${esc(statLine(reward))}</span></div><div><button data-act="goMap" data-arg="${esc(map.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button> <button data-act="claimMapReward" data-arg="${esc(map.id)}" ${canClaim?'':'disabled'}>領取</button></div></div>
+        <div class="bar"><i class="exp" style="width:${Math.max(0,Math.min(100,p.total||0))}%"></i><span>${p.total||0}%</span></div>
+        <div class="map-v37-sub"><span>探索 ${p.explore||0}/100</span><span>怪物 ${p.monCount||0}/${(p.mons||[]).length}</span><span>Boss ${p.bossCount||0}/${bosses.length}</span><span>掉落 ${drops.length}</span></div>
+        <details><summary>怪物 / Boss</summary><div class="drop-box"><b>怪物</b>${monHtml}</div><div class="drop-box"><b>Boss</b>${bossHtml}</div></details>
+      </div>`;
+    }).join('');
+    const result=q?`<div class="card"><b class="cyan">搜尋掉落：${esc(this.pageState.mapDropSearch)}</b>${matched.length?matched.map(m=>{
+      const hits=dropsOf(m).filter(id=>String(itemName(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q)).map(id=>`<span class="pill gold">${esc(itemName(id))}</span>`).join('');
+      return `<div class="item"><b>${esc(m.name)}</b><br>${hits}</div>`;
+    }).join(''):'<p class="muted">找不到掉落地圖</p>'}</div>`:'';
+    return (this.hero?this.hero('地圖圖鑑','地圖探索、怪物登錄、Boss登錄、永久獎勵與搜尋掉落。'):'<h3 class="title">地圖圖鑑</h3>')+
+      (this.statCards?this.statCards([['地圖',all.length,'gold'],['已探索',all.filter(m=>this.s.mapDiscovered?.[m.id]).length+'/'+all.length,'green'],['可領獎',all.filter(m=>(this.mapProgressV37(m).total||0)>=100&&!this.s.mapClaimed?.[m.id]).length,'red'],['目前地圖',esc(this.map().name),'blue']]):'')+
+      `<div class="card"><div class="row"><b>搜尋掉落</b><input data-map-drop-search="1" value="${esc(this.pageState.mapDropSearch||'')}" placeholder="輸入道具 / 技能書名稱，例如：破壞之劍、技能書" style="min-width:280px;flex:1"></div><div class="mini muted">搜尋結果只在這裡顯示，狩獵地圖不再顯示掉落清單。</div></div>${result}<div class="page-list">${cards}</div>`;
+  };
+
+  if(!window.__lmV37MapSearchBind){
+    window.__lmV37MapSearchBind=true;
+    document.addEventListener('input',function(e){
+      const el=e.target;
+      if(el&&el.dataset&&el.dataset.mapDropSearch){
+        clearTimeout(window.__lmV37MapSearchTimer);
+        window.__lmV37MapSearchTimer=setTimeout(function(){
+          Game.pageState=Game.pageState||{};
+          Game.pageState.mapDropSearch=el.value||'';
+          if(Game.tab==='mapBook') Game.renderTab();
+        },120);
+      }
+    });
+  }
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='clearMapSearch'){
+      this.pageState=this.pageState||{};
+      this.pageState.mapDropSearch='';
+      this.renderTab();
+      return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  const css=document.createElement('style');
+  css.textContent=`.map-v37-card{background:#081120;border:1px solid #26364e;border-radius:14px;padding:12px;margin-bottom:10px}.map-v37-card.active{border-color:#facc15;background:#151807}.map-v37-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:#94a3b8;font-size:13px;margin:8px 0}.map-v37-card summary{cursor:pointer;color:#e5eef9;margin-top:8px}.map-v37-card .drop-box{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.map-v37-card .drop-box b{color:#facc15;margin-right:4px}.pill.gold{border-color:#facc15;color:#facc15;background:#2b2512}.pill.green{border-color:#22c55e;color:#86efac;background:#082018}`;
+  document.head.appendChild(css);
+})();
+
 </script>
 
 </body></html>
