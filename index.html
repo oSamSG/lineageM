@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V34</title>
+<title>天堂M Core Rebuild V29</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
 </head><body>
-<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
+<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML｜離線存檔｜核心整合版：職業、地圖、怪物、掉落鑽石、裝備、強化、變身、娃娃、技能、技能書、副本、Boss、血盟、收藏、製作、商城、PVP、交易所、完整度檢查。</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
 <div id="classModal" class="modal hide"><div class="panel modal-card"><h2 class="title">選擇職業</h2><div id="classList" class="grid classes"></div><div class="row" style="margin-top:12px"><button id="backBtn">返回</button><button id="startBtn" class="green" disabled>開始遊戲</button></div></div></div>
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
@@ -3633,6 +3633,232 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     .map-fix-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:#94a3b8;font-size:13px;margin-bottom:8px}.drop-box{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.drop-box b{margin-right:4px;color:#facc15}.pill.gold{border-color:#facc15;color:#facc15;background:#2b2512}
     @media(max-width:720px){.map-fix-head{grid-template-columns:1fr}.map-fix-actions button{margin-left:0;margin-right:4px}}
   `;
+  document.head.appendChild(css);
+})();
+
+
+/* === V35 SKILL BOOK DROP / GUNNER EQUIPMENT FIX ===
+   1) 全站版本升級 V35
+   2) 怪物掉落技能書補全：所有職業技能書依地圖等級與技能階級加入掉落池與地圖圖鑑搜尋
+   3) 修復槍手武器可用判定：步槍/手槍/槍械類型統一視為 gun，槍手可正確裝備與製作
+*/
+(function(){
+  const esc=(typeof E==='function')?E:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
+  const fmt=n=>Math.floor(Number(n)||0).toLocaleString();
+  const RANK_VAL={N:1,R:2,SR:3,SSR:4,L:5,M:6};
+  const BOOK_RANK_LEVEL={N:1,R:10,SR:30,SSR:50,L:70,M:85};
+  const ARMOR_TYPES=['helmet','tshirt','armor','cloak','gloves','boots'];
+  const ACC_TYPES=['amulet','belt','earring','ring','rune','seal','relic'];
+  const EQUIP_TYPES=['weapon'].concat(ARMOR_TYPES,ACC_TYPES);
+  const TYPE_NAME={weapon:'武器',helmet:'頭盔',tshirt:'內衣',armor:'盔甲',cloak:'斗篷',gloves:'手套',boots:'鞋子',amulet:'項鍊',belt:'腰帶',earring:'耳環',ring:'戒指',rune:'符石',seal:'印章',relic:'聖物',book:'技能書',material:'材料',scroll:'卷軸',potion:'藥水',box:'箱子',buff:'道具',elixir:'萬能藥'};
+  const RANK_NAME={N:'一般',R:'高級',SR:'稀有',SSR:'英雄',L:'傳說',M:'神話'};
+  const weaponAlias={gun:'gun',rifle:'gun',pistol:'gun',handgun:'gun',launcher:'gun',cannon:'gun',hand_cannon:'gun',magic_cannon:'gun'};
+  function normWeapon(w){return weaponAlias[w]||w||'';}
+  function uniq(arr){return Array.from(new Set((arr||[]).filter(Boolean)));}
+  function classIds(){return Object.keys(DB.classes||{});}
+  function putItem(id,o){DB.item[id]=Object.assign({id,type:'weapon',rank:'R',safe:6,price:1000},DB.item[id]||{},o,{id});}
+  function recipe(id,req,adena,note){if(DB.item[id]){DB.recipes=DB.recipes||{};DB.recipes[id]={id,req,adena,note};}}
+
+  document.title='天堂M Core Rebuild V35';
+  const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V35';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V35';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V35：技能書掉落補全、槍手武器修復、地圖掉落搜尋支援技能書。';
+  Game.versionLabel='V35';
+
+  if(DB.classes&&DB.classes.gunner){
+    DB.classes.gunner.weapons=uniq((DB.classes.gunner.weapons||[]).concat(['gun','rifle','pistol','handgun','launcher','cannon','hand_cannon']));
+  }
+
+  // 槍手專用/共用槍械補齊，避免製作或掉落池沒有可用武器。
+  putItem('v35_gunner_revolver',{name:'獵魔左輪',type:'weapon',weapon:'gun',dmg:16,rank:'R',price:28000,stat:{dex:1}});
+  putItem('v35_gunner_rifle',{name:'精準步槍',type:'weapon',weapon:'gun',dmg:26,rank:'SR',price:90000,stat:{dex:2,hit:2}});
+  putItem('v35_gunner_sniper',{name:'死亡狙擊槍',type:'weapon',weapon:'gun',dmg:40,rank:'SSR',price:320000,stat:{dex:3,hit:5,dmg:4}});
+  putItem('v35_gunner_hellfire',{name:'地獄火步槍',type:'weapon',weapon:'gun',dmg:55,rank:'L',price:1200000,stat:{dex:4,hit:8,dmg:8}});
+  putItem('v35_gunner_mythic',{name:'神話審判者步槍',type:'weapon',weapon:'gun',dmg:78,rank:'M',price:3000000,stat:{dex:7,hit:14,dmg:18,dr:3}});
+  recipe('v35_gunner_rifle',{'m18_weapon_frag':36,'m18_iron_ingot':8,'m18_powder':8},160000,'槍手武器製作');
+  recipe('v35_gunner_sniper',{'m18_weapon_frag':80,'m18_steel_ingot':10,'m18_oriharucon':4,'m18_hero_scroll_piece':5},480000,'槍手英雄武器製作');
+  recipe('v35_gunner_hellfire',{'m18_weapon_frag':140,'m18_oriharucon':10,'m18_dragon_blood':4,'m18_legend_scroll_piece':4},1600000,'槍手傳說武器製作');
+  recipe('v35_gunner_mythic',{'m18_weapon_frag':260,'m18_dragon_metal':20,'m18_dragon_heart':4,'m18_myth_scroll_piece':5},7200000,'槍手神話武器製作');
+
+  // 所有技能書補齊並統一 skill / bookSkill 欄位。
+  Object.values(DB.skills||{}).forEach(sk=>{
+    if(!sk||!sk.id) return;
+    const id='book_'+sk.id;
+    const cls=DB.classes?.[sk.classId]?.name||'職業';
+    DB.item[id]=Object.assign({id,name:`技能書：${sk.name}`,type:'book',rank:sk.rank||'N',price:Math.max(10000,(sk.lv||1)*50000),skill:sk.id,bookSkill:sk.id,allowedClasses:[sk.classId]},DB.item[id]||{});
+    DB.item[id].id=id; DB.item[id].name=`技能書：${sk.name}`; DB.item[id].type='book'; DB.item[id].rank=sk.rank||DB.item[id].rank||'N'; DB.item[id].skill=sk.id; DB.item[id].bookSkill=sk.id; DB.item[id].allowedClasses=[sk.classId]; DB.item[id].desc=`${cls}技能書`;
+  });
+
+  function allBookIds(){return Object.values(DB.item||{}).filter(d=>d.type==='book'&&(d.skill||d.bookSkill)).map(d=>d.id);}
+  function bookIdsForMap(map){
+    const lv=Number(map?.max||map?.min||1);
+    const ids=allBookIds().filter(id=>{
+      const d=DB.item[id]; const sk=DB.skills[d.skill||d.bookSkill]||{}; const needRank=BOOK_RANK_LEVEL[d.rank||sk.rank||'N']||1; return lv>=needRank;
+    });
+    // 高階地圖保留全階級技能書；低階地圖只出低階，避免一開始噴神話書。
+    return ids.sort((a,b)=>((RANK_VAL[DB.item[a].rank||'N']||1)-(RANK_VAL[DB.item[b].rank||'N']||1))||String(DB.item[a].name).localeCompare(String(DB.item[b].name),'zh-Hant'));
+  }
+
+  // 加入地圖掉落資料，讓地圖圖鑑與搜尋掉落也能找到技能書。
+  (DB.maps||[]).forEach(map=>{
+    const books=bookIdsForMap(map);
+    map.skillBookDrops=books;
+    map.drops=uniq([...(map.drops||[]),...books]);
+    // 槍手武器加入中高階地圖掉落
+    if((map.max||0)>=20) map.drops=uniq(map.drops.concat(['v35_gunner_revolver']));
+    if((map.max||0)>=45) map.drops=uniq(map.drops.concat(['v35_gunner_rifle']));
+    if((map.max||0)>=65) map.drops=uniq(map.drops.concat(['v35_gunner_sniper']));
+    if((map.max||0)>=80) map.drops=uniq(map.drops.concat(['v35_gunner_hellfire']));
+    if((map.max||0)>=90) map.drops=uniq(map.drops.concat(['v35_gunner_mythic']));
+  });
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(this.s){
+      this.s.version='core_rebuild_v35_skillbook_gunner_fix';
+      if(this.s.cls==='gunner'&&DB.classes.gunner) DB.classes.gunner.weapons=uniq((DB.classes.gunner.weapons||[]).concat(['gun','rifle','pistol','handgun','launcher','cannon','hand_cannon']));
+    }
+  };
+
+  const oldBase=Game.base;
+  Game.base=function(cls){
+    const s=oldBase.call(this,cls);
+    if(cls==='gunner'){
+      Object.keys(s.inv||{}).forEach(k=>{if(s.inv[k]?.id==='short_sword') delete s.inv[k];});
+      s.inv['v35_gunner_revolver|0|start']={id:'v35_gunner_revolver',qty:1,enchant:0};
+    }
+    s.version='core_rebuild_v35_skillbook_gunner_fix';
+    return s;
+  };
+
+  // 職業可用判定修復：槍械別名一律視為 gun，槍手可用。
+  const limitedV35={
+    dark_robe:['wizard'], zero_staff:['wizard'], demon_staff:['wizard'], ice_queen_staff:['wizard'], fafu_staff:['wizard'],
+    saiha_bow:['elf'], moon_bow:['elf'], angel_slayer:['elf'], gaia_bow:['elf'], lindvior_bow:['elf'], crossbow:['elf'],
+    roaring_dual:['darkelf'], shadow_dual:['darkelf'], rondu_claw:['darkelf'], blood_claw:['darkelf'],
+    chain_sword:['dragon'], mortal_chain:['dragon'], titan_axe:['berserker'], soul_scythe:['reaper'], thunder_spear:['thunder'], holy_spear:['holyknight','thunder'], zephyr_spear:['holyknight','thunder'],
+    dragon_slayer:['knight','berserker'], mythic_excalibur:['prince','knight','holyknight','magic_swordsman'],
+    gunner_rifle:['gunner'], silver_rifle:['gunner'], demon_rifle:['gunner'], mythic_rifle:['gunner'], v35_gunner_revolver:['gunner'], v35_gunner_rifle:['gunner'], v35_gunner_sniper:['gunner'], v35_gunner_hellfire:['gunner'], v35_gunner_mythic:['gunner']
+  };
+  Game.itemJobs=function(d){
+    if(!d) return [];
+    if(Array.isArray(d.allowedClasses)&&d.allowedClasses.length) return d.allowedClasses;
+    if(Array.isArray(d.jobs)&&d.jobs.length) return d.jobs;
+    if(limitedV35[d.id]) return limitedV35[d.id];
+    if(d.type==='book'){
+      const sk=DB.skills[d.skill||d.bookSkill];
+      return sk&&sk.classId?[sk.classId]:classIds();
+    }
+    if(d.type==='weapon'){
+      const w=normWeapon(d.weapon);
+      return classIds().filter(cid=>uniq((DB.classes[cid]?.weapons||[]).map(normWeapon)).includes(w));
+    }
+    if(EQUIP_TYPES.includes(d.type)) return classIds();
+    return classIds();
+  };
+  Game.canUseByClass=function(d,cid=this.s?.cls){return !!cid&&this.itemJobs(d).includes(cid);};
+  Game.canEquipItem=function(d){return !!d&&EQUIP_TYPES.includes(d.type)&&this.canUseByClass(d);};
+  Game.classNamesForItemV34=function(d){
+    if(!d) return ['未知'];
+    if(d.type==='weapon'||d.type==='book'||Array.isArray(d.allowedClasses)||Array.isArray(d.jobs)){
+      const jobs=this.itemJobs(d); return jobs.length?jobs.map(id=>DB.classes[id]?.name||id):['未設定'];
+    }
+    if(EQUIP_TYPES.includes(d.type)) return ['全職業'];
+    return ['全職業'];
+  };
+  Game.jobLineV34=function(d){
+    const names=this.classNamesForItemV34(d);
+    const usable=this.canUseByClass?this.canUseByClass(d):true;
+    if(names.length===1&&names[0]==='全職業') return `<div class="job-line"><span class="pill job-ok">全職業可用</span></div>`;
+    return `<div class="job-line"><span class="pill ${usable?'job-ok':'job-no'}">目前職業：${usable?'可使用':'不可使用'}</span>${names.map(n=>`<span class="pill ${usable?'job-ok':'job-no'}">${esc(n)}</span>`).join('')}</div>`;
+  };
+
+  // 技能書掉落池補強：V34 原掉落池外，依地圖等級加入技能書權重。
+  const oldBuildDropPool=Game.buildDropPoolV34;
+  Game.buildDropPoolV34=function(map){
+    const pool=oldBuildDropPool?oldBuildDropPool.call(this,map):[];
+    const lv=Number(map?.max||map?.min||1);
+    bookIdsForMap(map).forEach(id=>{
+      const d=DB.item[id]; if(!d) return;
+      const rank=RANK_VAL[d.rank||'N']||1;
+      let weight=Math.max(1,9-rank*1.4);
+      if(lv>=80&&rank>=4) weight+=1;
+      if(lv>=90&&rank>=5) weight+=1;
+      pool.push({id,weight,qtyMin:1,qtyMax:1,tag:'技能書掉落'});
+    });
+    ['v35_gunner_revolver','v35_gunner_rifle','v35_gunner_sniper','v35_gunner_hellfire','v35_gunner_mythic'].forEach((id,i)=>{
+      if(DB.item[id]&&lv>=[15,35,55,75,88][i]) pool.push({id,weight:Math.max(1,5-i),qtyMin:1,qtyMax:1,tag:'槍手武器掉落'});
+    });
+    return pool;
+  };
+
+  // 技能書獨立追加掉落：避免權重池太大導致技能書實際掉率過低。
+  const oldKill=Game.kill;
+  Game.kill=function(m,bonus){
+    const map=this.map();
+    oldKill.call(this,m,bonus);
+    if(!map) return;
+    const books=bookIdsForMap(map); if(!books.length) return;
+    const lv=Number(map.max||map.min||1);
+    let rate=0.012;
+    if(lv>=30) rate=0.018;
+    if(lv>=50) rate=0.026;
+    if(lv>=70) rate=0.036;
+    if(lv>=85) rate=0.050;
+    if(m&&m.boss) rate*=5;
+    if(Math.random()>Math.min(0.30,rate)) return;
+    const weighted=[];
+    books.forEach(id=>{const d=DB.item[id]; const rank=RANK_VAL[d.rank||'N']||1; const w=Math.max(1,8-rank); for(let i=0;i<w;i++) weighted.push(id);});
+    const id=weighted[Math.floor(Math.random()*weighted.length)];
+    if(DB.item[id]){this.addItem(id,1,0);this.log(`技能書掉落：${DB.item[id].name}`,'green');}
+  };
+
+  Game.dropPreviewV35=function(map){
+    const pool=this.buildDropPoolV34(map);
+    const grouped={};
+    pool.forEach(x=>{const d=DB.item[x.id]; if(!d) return; const type=d.type==='book'?'技能書':d.type==='weapon'?'武器':ARMOR_TYPES.includes(d.type)?'裝備':ACC_TYPES.includes(d.type)?'飾品':d.type==='material'?'材料':d.type==='scroll'?'卷軸':d.type==='potion'?'藥水':'其他'; grouped[type]=grouped[type]||[]; if(!grouped[type].some(y=>y.id===d.id)) grouped[type].push(d);});
+    return Object.entries(grouped).map(([type,list])=>`<div class="drop-group"><b>${esc(type)}</b><div class="pill-row">${list.slice(0,20).map(d=>`<span class="pill r-${d.rank||'N'}" title="${esc(d.name)}">${esc(d.name)}</span>`).join('')}</div></div>`).join('');
+  };
+  Game.viewHunt=function(){
+    const maps=(DB.maps||[]).map(m=>{
+      const active=this.s.map===m.id, rate=this.dropRateV34?Math.round(this.dropRateV34(m,false)*100):0;
+      const bookCount=bookIdsForMap(m).length;
+      return `<div class="list-card ${active?'active':''}"><div class="row"><div><b>${esc(m.name)}</b><br><span class="muted">Lv.${m.min}-${m.max}｜怪物：${(m.mons||[]).map(esc).join('、')}｜掉落率約 ${rate}%｜技能書 ${bookCount} 本</span></div><button data-act="goMap" data-arg="${esc(m.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button></div>${this.dropPreviewV35(m)}</div>`;
+    }).join('');
+    return (this.hero?this.hero('狩獵 / 怪物掉落 V35','技能書已依地圖等級補入掉落池；槍手武器也納入掉落與製作。'):'<h3 class="title">狩獵 / 怪物掉落 V35</h3>')+
+      (this.statCards?this.statCards([['地圖數',(DB.maps||[]).length,'blue'],['技能書',allBookIds().length,'gold'],['目前地圖',esc(this.map().name),'green'],['今日擊殺',this.s.daily.kills||0,'cyan']]):'')+
+      `<div class="page-list">${maps}</div>`;
+  };
+
+  // 製作頁保留 V34 分類，但標題與職業判定改 V35。
+  Game.craftCardV34=function(d){
+    const r=(DB.recipes||{})[d.id]; if(!r) return '';
+    const ok=this.recipeOkV34?this.recipeOkV34(r):true, equip=EQUIP_TYPES.includes(d.type), usable=!equip||(this.canUseByClass?this.canUseByClass(d):true);
+    const req=this.recipeReqV34?this.recipeReqV34(r):'';
+    return `<div class="craft-v34-card ${equip&&!usable?'job-disabled':''}"><div class="row"><div><b class="r-${d.rank||'N'}">${esc(d.name)}</b><br><span class="muted">${TYPE_NAME[d.type]||d.type}｜${RANK_NAME[d.rank]||d.rank||'一般'}｜金幣 ${fmt(r.adena||0)}</span></div><button data-act="craft" data-arg="${esc(d.id)}" ${ok?'':'disabled'}>製作</button></div><div class="mini muted">${esc(r.note||'製作配方')}</div>${equip||d.type==='book'?this.jobLineV34(d):''}<div class="drop-box">${req}</div></div>`;
+  };
+  const oldViewCraftV34=Game.viewCraftV34;
+  Game.viewCraftV34=function(){
+    const html=oldViewCraftV34?oldViewCraftV34.call(this):'';
+    return html.replace(/製作 V34/g,'製作 V35').replace(/製作頁比照變身\/娃娃分類，並顯示武器、裝備、飾品可使用職業。/g,'製作頁分類顯示，武器、裝備、飾品與技能書會標示可使用職業；槍手槍械已修復。');
+  };
+
+  // 地圖圖鑑搜尋提示改為技能書可搜；因技能書已加入 map.drops，既有搜尋掉落可直接搜尋。
+  const oldViewMapBook=Game.viewMapBookV23;
+  Game.viewMapBookV23=function(){
+    const html=oldViewMapBook?oldViewMapBook.call(this):'';
+    return html.replace('搜尋地圖、怪物、Boss、掉落物，例如：祝福粉末、武卷、龍鱗','搜尋地圖、怪物、Boss、掉落物、技能書，例如：技能書、快速射擊、槍手、龍鱗');
+  };
+
+  const oldRenderStatus=Game.renderStatus;
+  Game.renderStatus=function(){
+    if(this.s?.cls==='gunner'&&DB.classes.gunner) DB.classes.gunner.weapons=uniq((DB.classes.gunner.weapons||[]).concat(['gun','rifle','pistol','handgun','launcher','cannon','hand_cannon']));
+    return oldRenderStatus.call(this);
+  };
+
+  const css=document.createElement('style');
+  css.textContent=`.r-M{color:#f87171}.r-L{color:#fb923c}.r-SSR{color:#c084fc}.r-SR{color:#60a5fa}.r-R{color:#4ade80}.r-N{color:#e5e7eb}`;
   document.head.appendChild(css);
 })();
 </script>
