@@ -4590,4 +4590,154 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
 </script>
 
+
+
+<!-- === V40 GUILD RAID FIX === -->
+<script>
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const fmt=n=>Math.floor(Number(n)||0).toLocaleString();
+  const GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5;
+  function count(inv,id){return Object.values(inv||{}).filter(x=>x&&x.id===id).reduce((a,x)=>a+(Number(x.qty)||0),0);}
+  function consume(game,id,qty){
+    let need=Number(qty)||0;
+    for(const k of Object.keys(game.s.inv||{})){
+      const it=game.inv(k);
+      if(!it||it.id!==id) continue;
+      const q=Math.min(need,Number(it.qty)||0);
+      game.rem(k,q);
+      need-=q;
+      if(need<=0) return true;
+    }
+    return need<=0;
+  }
+  function hasCost(game,cost){return Object.entries(cost||{}).every(([id,q])=>count(game.s.inv,id)>=Number(q||0));}
+  function costText(cost){
+    const arr=Object.entries(cost||{});
+    if(!arr.length) return '無';
+    return arr.map(([id,q])=>`${esc(DB.item?.[id]?.name||id)}×${q}`).join('、');
+  }
+  function missingText(game,cost){
+    return Object.entries(cost||{}).filter(([id,q])=>count(game.s.inv,id)<Number(q||0)).map(([id,q])=>`${esc(DB.item?.[id]?.name||id)} ${count(game.s.inv,id)}/${q}`).join('、');
+  }
+  function giveReward(game,reward){
+    for(const [id,val] of Object.entries(reward||{})){
+      const qty=Array.isArray(val)?game.rand(Number(val[0])||0,Number(val[1])||0):Number(val)||0;
+      if(qty<=0) continue;
+      if(id==='adena') game.s.adena=(game.s.adena||0)+qty;
+      else if(id==='diamond') game.s.diamond=(game.s.diamond||0)+qty;
+      else game.addItem(id,qty);
+    }
+  }
+  function normalizeGuildRaidDB(){
+    DB.guildDungeonsV23=Array.isArray(DB.guildDungeonsV23)&&DB.guildDungeonsV23.length?DB.guildDungeonsV23:[
+      {id:'gd1',name:'血盟訓練場',lv:1,cost:{v23_guild_key:1},reward:{adena:[50000,150000],v23_event_coin:[5,12]}},
+      {id:'gd2',name:'血盟地下基地',lv:30,cost:{v23_guild_key:2},reward:{m18_powder:[20,60],v23_skill_page:[3,8]}},
+      {id:'gd3',name:'血盟龍之試煉',lv:50,cost:{v23_guild_key:3},reward:{v23_boss_token:[1,2],v23_awake_stone:[1,2]}}
+    ];
+    DB.guildBossV23=Array.isArray(DB.guildBossV23)&&DB.guildBossV23.length?DB.guildBossV23:[
+      {id:'gb1',name:'血盟巴風特',lv:20,hp:50000,cost:{v23_boss_token:1},reward:{m18_powder:[30,80],v23_event_coin:[10,20]}},
+      {id:'gb2',name:'血盟死亡騎士',lv:40,hp:120000,cost:{v23_boss_token:2},reward:{v23_awake_stone:[1,2],m18_powder:[80,180]}},
+      {id:'gb3',name:'血盟安塔瑞斯幻影',lv:60,hp:300000,cost:{v23_boss_token:3},reward:{v23_relic_awake:[1,1],v23_tj_coin:[1,3]}}
+    ];
+  }
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(!this.s) return;
+    normalizeGuildRaidDB();
+    this.s.version='core_rebuild_v40_guild_raid_fix';
+    this.s.daily=this.s.daily||{};
+    if(this.s.daily.guildDungeon===undefined) this.s.daily.guildDungeon=GUILD_DUNGEON_MAX;
+    if(this.s.daily.guildBoss===undefined) this.s.daily.guildBoss=GUILD_BOSS_MAX;
+    this.s.daily.guildDungeon=Math.max(0,Number(this.s.daily.guildDungeon)||0);
+    this.s.daily.guildBoss=Math.max(0,Number(this.s.daily.guildBoss)||0);
+    this.s.codexBoss=this.s.codexBoss||{};
+    this.s.guild=this.s.guild||{name:'亞丁遠征軍',lv:1,donate:0,skill:0};
+    if(!this.s.guild.name) this.s.guild.name='亞丁遠征軍';
+    if(count(this.s.inv,'v23_guild_key')<=0) this.addItem('v23_guild_key',GUILD_DUNGEON_MAX);
+    if(count(this.s.inv,'v23_boss_token')<=0) this.addItem('v23_boss_token',GUILD_BOSS_MAX);
+  };
+
+  Game.viewGuildRaidV23=function(){
+    this.ensure();
+    normalizeGuildRaidDB();
+    const gd=DB.guildDungeonsV23.map(d=>{
+      const lvOk=this.s.lv>=(Number(d.lv)||1);
+      const costOk=hasCost(this,d.cost||{});
+      const dailyOk=(this.s.daily.guildDungeon||0)>0;
+      const can=lvOk&&costOk&&dailyOk;
+      const miss=missingText(this,d.cost||{});
+      return `<div class="list-card"><div class="row"><div><b>${esc(d.name)}</b><br><span class="muted">需求 Lv.${d.lv||1}｜消耗：${costText(d.cost||{})}</span><br><span class="${can?'green':'red'} mini">${can?'可進入':(!dailyOk?'今日次數不足':!lvOk?'等級不足':'缺少：'+miss)}</span></div><button data-act="guildDungeonV23" data-arg="${esc(d.id)}" ${can?'':'disabled'}>進入</button></div></div>`;
+    }).join('');
+    const gb=DB.guildBossV23.map(b=>{
+      const lvOk=this.s.lv>=(Number(b.lv)||1);
+      const costOk=hasCost(this,b.cost||{});
+      const dailyOk=(this.s.daily.guildBoss||0)>0;
+      const can=lvOk&&costOk&&dailyOk;
+      const miss=missingText(this,b.cost||{});
+      return `<div class="list-card boss-card"><div class="row"><div><b class="red">${esc(b.name)}</b><br><span class="muted">需求 Lv.${b.lv||1}｜HP ${fmt(b.hp||0)}｜消耗：${costText(b.cost||{})}</span><br><span class="${can?'green':'red'} mini">${can?'可召喚':(!dailyOk?'今日次數不足':!lvOk?'等級不足':'缺少：'+miss)}</span></div><button data-act="guildBossV23" data-arg="${esc(b.id)}" ${can?'':'disabled'}>召喚討伐</button></div></div>`;
+    }).join('');
+    return (this.hero?this.hero('血盟副本 / 血盟Boss',`血盟副本 ${this.s.daily.guildDungeon||0}/${GUILD_DUNGEON_MAX}｜血盟Boss ${this.s.daily.guildBoss||0}/${GUILD_BOSS_MAX}`):'<h3 class="title">血盟副本 / 血盟Boss</h3>')+
+      (this.statCards?this.statCards([
+        ['血盟副本',(this.s.daily.guildDungeon||0)+'/'+GUILD_DUNGEON_MAX,'green'],
+        ['血盟Boss',(this.s.daily.guildBoss||0)+'/'+GUILD_BOSS_MAX,'red'],
+        ['副本鑰匙',count(this.s.inv,'v23_guild_key'),'gold'],
+        ['召喚石',count(this.s.inv,'v23_boss_token'),'purple']
+      ]):'')+
+      `<h4 class="title">血盟副本</h4><div class="page-list">${gd}</div><h4 class="title">血盟Boss</h4><div class="page-list">${gb}</div>`;
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    this.ensure();
+    normalizeGuildRaidDB();
+    if(a==='guildDungeonV23'||a==='guildDungeon'){
+      const d=DB.guildDungeonsV23.find(x=>x.id===arg);
+      if(!d) return alert('找不到血盟副本');
+      if((this.s.daily.guildDungeon||0)<=0) return alert('今日血盟副本次數不足');
+      if(this.s.lv<(Number(d.lv)||1)) return alert('等級不足，需要 Lv.'+(d.lv||1));
+      if(!hasCost(this,d.cost||{})) return alert('缺少：'+missingText(this,d.cost||{}));
+      Object.entries(d.cost||{}).forEach(([id,q])=>consume(this,id,q));
+      this.s.daily.guildDungeon--;
+      giveReward(this,d.reward||{});
+      this.log('完成血盟副本：'+d.name,'green');
+      this.render(); this.save(false); return;
+    }
+    if(a==='guildBossV23'||a==='guildBoss'){
+      const gb=DB.guildBossV23.find(x=>x.id===arg);
+      if(!gb) return alert('找不到血盟Boss');
+      if((this.s.daily.guildBoss||0)<=0) return alert('今日血盟Boss次數不足');
+      if(this.s.lv<(Number(gb.lv)||1)) return alert('等級不足，需要 Lv.'+(gb.lv||1));
+      if(!hasCost(this,gb.cost||{})) return alert('缺少：'+missingText(this,gb.cost||{}));
+      Object.entries(gb.cost||{}).forEach(([id,q])=>consume(this,id,q));
+      this.s.daily.guildBoss--;
+      giveReward(this,gb.reward||{});
+      this.s.codexBoss[gb.name]=(this.s.codexBoss[gb.name]||0)+1;
+      if(typeof this.rebuildMapBookV40==='function') this.rebuildMapBookV40();
+      this.log('血盟Boss討伐完成：'+gb.name,'green');
+      this.render(); this.save(false); return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  const oldRefresh=Game.forceDailyRefreshV40;
+  if(oldRefresh){
+    Game.forceDailyRefreshV40=function(){
+      oldRefresh.call(this);
+      this.s.daily.guildDungeon=GUILD_DUNGEON_MAX;
+      this.s.daily.guildBoss=GUILD_BOSS_MAX;
+      this.addItem('v23_guild_key',GUILD_DUNGEON_MAX);
+      this.addItem('v23_boss_token',GUILD_BOSS_MAX);
+      this.log('已刷新血盟副本與血盟Boss次數','green');
+      this.render(); this.save(false);
+    };
+  }
+
+  document.title='天堂M Core Rebuild V40｜血盟副本修正版';
+  const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V40';
+})();
+</script>
+
 </body></html>
