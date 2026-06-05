@@ -4434,6 +4434,160 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       `<div class="card"><div class="row"><b>搜尋掉落</b><input data-map-drop-search="1" value="${esc(this.pageState.mapDropSearch||'')}" placeholder="輸入道具 / 技能書名稱" style="min-width:280px;flex:1"></div></div>${result}<div class="page-list">${cards}</div>`;
   };
 })();
+
+
+/* === V40.2 DAILY REFRESH FIX ===
+   修復商城、副本、世界王沒有每日刷新：
+   - 每日日期變更時重置副本/世界王/血盟副本/血盟Boss/TJ/簽到/每日任務
+   - 商城限購每日重置
+   - 讀檔、進入遊戲、操作按鈕、頁面渲染、狩獵Tick都會自動檢查
+*/
+(function(){
+  const DAILY_LIMITS={
+    dungeon:30,
+    boss:10,
+    guildDungeon:10,
+    guildBoss:5,
+    signin:1,
+    tj:1,
+    tjRestore:1,
+    tjCard:1,
+    tjEnchant:1,
+    diamondQuest:0,
+    kills:0
+  };
+  function pad(n){return String(n).padStart(2,'0');}
+  function todayKey(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+  function applyDailyDefaults(s,force){
+    s.daily=s.daily||{};
+    Object.entries(DAILY_LIMITS).forEach(([k,v])=>{
+      if(force || typeof s.daily[k]!=='number') s.daily[k]=v;
+    });
+    if(force){
+      s.shopBought={};
+      s.dailyShopBought={};
+      s.daily.diamondQuest=0;
+      s.daily.kills=0;
+      s.daily.mail=1;
+      s.daily.tj=1;
+      s.daily.tjRestore=1;
+      s.daily.tjCard=1;
+      s.daily.tjEnchant=1;
+      s.daily.signin=1;
+    }
+  }
+  Game.dailyLimitV402=DAILY_LIMITS;
+  Game.todayKeyV402=todayKey;
+  Game.checkDailyRefreshV402=function(silent){
+    if(!this.s) return false;
+    const s=this.s;
+    const today=todayKey();
+    s.daily=s.daily||{};
+    s.system=s.system||{};
+    if(!s.dailyDate){
+      s.dailyDate=today;
+      applyDailyDefaults(s,false);
+      return false;
+    }
+    if(s.dailyDate!==today){
+      const old=s.dailyDate;
+      s.dailyDate=today;
+      s.system.lastDailyRefresh={from:old,to:today,t:Date.now()};
+      applyDailyDefaults(s,true);
+      if(!silent && this.log) this.log('每日刷新完成：商城、副本、世界王、TJ、簽到次數已重置','green');
+      if(this.save) this.save(false);
+      return true;
+    }
+    applyDailyDefaults(s,false);
+    return false;
+  };
+
+  const oldBase=Game.base;
+  Game.base=function(cls){
+    const s=oldBase.call(this,cls);
+    s.dailyDate=todayKey();
+    applyDailyDefaults(s,true);
+    return s;
+  };
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(this.s) this.checkDailyRefreshV402(true);
+  };
+
+  const oldEnter=Game.enter;
+  Game.enter=function(){
+    const r=oldEnter.call(this);
+    this.checkDailyRefreshV402(false);
+    return r;
+  };
+
+  const oldTick=Game.tick;
+  Game.tick=function(){
+    this.checkDailyRefreshV402(true);
+    return oldTick.call(this);
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    this.checkDailyRefreshV402(false);
+    if(a==='refreshDailyNow'){
+      applyDailyDefaults(this.s,true);
+      this.s.dailyDate=todayKey();
+      this.log('已手動刷新每日次數','green');
+      this.save(false);
+      this.render();
+      return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  const oldRender=Game.render;
+  Game.render=function(){
+    this.checkDailyRefreshV402(true);
+    return oldRender.call(this);
+  };
+
+  const oldRenderTab=Game.renderTab;
+  Game.renderTab=function(){
+    this.checkDailyRefreshV402(true);
+    return oldRenderTab.call(this);
+  };
+
+  const oldViewDungeon=Game.viewDungeon;
+  Game.viewDungeon=function(){
+    this.checkDailyRefreshV402(true);
+    const html=oldViewDungeon.call(this);
+    return html.replace('今日剩餘 '+this.s.daily.dungeon+' 次。','今日剩餘 '+this.s.daily.dungeon+' 次。｜每日刷新：'+this.s.dailyDate)
+      +`<div class="card"><b class="green">每日刷新狀態</b><br><span class="muted">副本每日上限 ${DAILY_LIMITS.dungeon} 次，日期變更後自動刷新。</span><br><button data-act="refreshDailyNow" class="gold">手動刷新每日次數</button></div>`;
+  };
+
+  const oldViewBoss=Game.viewBoss;
+  Game.viewBoss=function(){
+    this.checkDailyRefreshV402(true);
+    const html=oldViewBoss.call(this);
+    return html.replace('今日剩餘 '+this.s.daily.boss+' 次。','今日剩餘 '+this.s.daily.boss+' 次。｜每日刷新：'+this.s.dailyDate)
+      +`<div class="card"><b class="green">每日刷新狀態</b><br><span class="muted">世界王每日上限 ${DAILY_LIMITS.boss} 次，日期變更後自動刷新。</span><br><button data-act="refreshDailyNow" class="gold">手動刷新每日次數</button></div>`;
+  };
+
+  if(Game.viewShopV23 || Game.viewShop){
+    const oldShop=Game.viewShopV23 || Game.viewShop;
+    const shopName=Game.viewShopV23?'viewShopV23':'viewShop';
+    Game[shopName]=function(){
+      this.checkDailyRefreshV402(true);
+      const html=oldShop.call(this);
+      return html+`<div class="card"><b class="green">商城每日刷新</b><br><span class="muted">每日限購紀錄會在日期變更後自動清空。刷新日期：${this.s.dailyDate}</span><br><button data-act="refreshDailyNow" class="gold">手動刷新每日次數</button></div>`;
+    };
+  }
+
+  const oldDash=Game.viewDash;
+  Game.viewDash=function(){
+    this.checkDailyRefreshV402(true);
+    return oldDash.call(this)+`<div class="card"><b class="green">每日刷新核心</b><p class="muted">刷新日期：${this.s.dailyDate}｜副本 ${this.s.daily.dungeon}/${DAILY_LIMITS.dungeon}｜世界王 ${this.s.daily.boss}/${DAILY_LIMITS.boss}｜商城限購會每日重置。</p></div>`;
+  };
+})();
+
 </script>
 
 </body></html>
