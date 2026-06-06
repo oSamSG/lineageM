@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V29</title>
+<title>天堂M Core Rebuild V43｜分解材料優化版</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
@@ -5152,6 +5152,182 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       `<div class="page-list">${rows||'<p class="muted">沒有符合條件的地圖</p>'}</div>`;
   };
 })();
+/* === V43 MATERIAL DISASSEMBLY / VERSION CONSOLIDATION CORE ===
+   Consolidated release patch: upgrades public version labels to V43, keeps prior patches as legacy layers,
+   and replaces equipment disassembly with a recipe-aware material return system. */
+(function(){
+  'use strict';
+  const APP_VERSION='V43';
+  const SAVE_KEY='lm_core_rebuild_v43_material_recycle';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const rankValue=r=>(R[r]&&R[r][1])||1;
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const armorTypes=['helmet','tshirt','armor','cloak','gloves','boots'];
+  const accTypes=['amulet','belt','earring','ring'];
+  const specialTypes=['rune','seal','relic'];
+  const mat=(id,o)=>{DB.item[id]=Object.assign({id,type:'material',rank:'N',price:100,group:'分解材料'},DB.item[id]||{},o);};
+
+  window.LM_CORE_VERSION=APP_VERSION;
+  DB.version='core_rebuild_v43_material_recycle';
+  DB.versionHistory={current:APP_VERSION,previous:['V15.1','V16','V17','V18','V19','V21','V22','V23','V24','V25','V27','V28','V29','V30','V31','V32','V33','V37','V40','V40.1','V40.2','V41','V42'],note:'V43 consolidates public labels and adds optimized material disassembly.'};
+
+  document.title='天堂M Core Rebuild V43｜分解材料優化版';
+  const setText=(sel,text)=>{const el=document.querySelector(sel); if(el) el.textContent=text;};
+  setText('#start h1','天堂M Core Rebuild V43');
+  setText('#app .top .title','天堂M Core Rebuild V43｜分解材料優化版');
+  const startDesc=document.querySelector('#start p');
+  if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V43：已整理版本顯示，優化裝備分解材料、分解預覽、批次分解與材料回收規則。';
+
+  const oldStoreSave=Store.save.bind(Store), oldStoreLoad=Store.load.bind(Store), oldStoreClear=Store.clear.bind(Store);
+  Store.key=SAVE_KEY;
+  Store.save=s=>localStorage.setItem(SAVE_KEY,JSON.stringify(s));
+  Store.load=()=>{try{return JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('lm_core_rebuild_v42_mapbook_fix')||localStorage.getItem('lm_core_rebuild_v41_mapbook_rules')||localStorage.getItem('lm_core_rebuild_v40_refresh_fix')||localStorage.getItem('lm_core_rebuild_v37_clean')||localStorage.getItem('lm_core_rebuild_v33_equipped_guard')||localStorage.getItem('lm_core_rebuild_v16_official_balance')||localStorage.getItem('lm_core_rebuild_v15')||localStorage.getItem('lm_all_in_one_v1')||'null')}catch{return oldStoreLoad();}};
+  Store.clear=()=>{[SAVE_KEY,'lm_core_rebuild_v42_mapbook_fix','lm_core_rebuild_v41_mapbook_rules','lm_core_rebuild_v40_refresh_fix','lm_core_rebuild_v37_clean','lm_core_rebuild_v33_equipped_guard','lm_core_rebuild_v16_official_balance','lm_core_rebuild_v15','lm_all_in_one_v1'].forEach(k=>localStorage.removeItem(k)); try{oldStoreClear();}catch(e){}};
+
+  mat('v43_weapon_core',{name:'武器分解核心',rank:'R',price:900,group:'武器材料',desc:'由武器分解取得，用於武器製作與進階強化。'});
+  mat('v43_armor_core',{name:'防具分解核心',rank:'R',price:750,group:'防具材料',desc:'由防具分解取得，用於防具製作與進階強化。'});
+  mat('v43_acc_core',{name:'飾品分解核心',rank:'R',price:1100,group:'飾品材料',desc:'由飾品分解取得，用於飾品、符石、印章製作。'});
+  mat('v43_magic_dust',{name:'魔法殘粉',rank:'N',price:120,group:'通用材料',desc:'所有裝備分解皆可取得的基礎材料。'});
+  mat('v43_bless_dust',{name:'祝福殘粉',rank:'SR',price:1800,group:'祝福材料',desc:'高階或高強化裝備分解取得，可轉化為祝福粉末。'});
+  mat('v43_hero_essence',{name:'英雄分解精華',rank:'SSR',price:6000,group:'高階材料',desc:'英雄級以上裝備分解取得。'});
+  mat('v43_legend_essence',{name:'傳說分解精華',rank:'L',price:18000,group:'高階材料',desc:'傳說級以上裝備分解取得。'});
+  mat('v43_myth_essence',{name:'神話分解精華',rank:'M',price:60000,group:'高階材料',desc:'神話裝備分解取得。'});
+  if(!DB.item.m18_powder) mat('m18_powder',{name:'祝福粉末',rank:'R',price:650,group:'祝福材料'});
+  if(!DB.item.m18_weapon_frag) mat('m18_weapon_frag',{name:'武器碎片',rank:'N',price:300,group:'武器材料'});
+  if(!DB.item.m18_armor_frag) mat('m18_armor_frag',{name:'防具碎片',rank:'N',price:250,group:'防具材料'});
+  if(!DB.item.m18_acc_frag) mat('m18_acc_frag',{name:'飾品碎片',rank:'R',price:450,group:'飾品材料'});
+  if(!DB.item.m18_relic_piece) mat('m18_relic_piece',{name:'聖物碎片',rank:'SR',price:1200,group:'聖物材料'});
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){ oldEnsure(); if(this.s){ this.s.version='core_rebuild_v43_material_recycle'; this.s.disassembleLog=this.s.disassembleLog||[]; } };
+
+  Game.disassembleBaseMaterial=function(d){
+    if(d.type==='weapon') return ['m18_weapon_frag','v43_weapon_core'];
+    if(armorTypes.includes(d.type)) return ['m18_armor_frag','v43_armor_core'];
+    if(accTypes.includes(d.type)) return ['m18_acc_frag','v43_acc_core'];
+    if(specialTypes.includes(d.type)) return ['m18_relic_piece','v43_acc_core'];
+    return ['v43_magic_dust'];
+  };
+
+  Game.disassembleRewards=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return [];
+    if(!equipTypes.includes(d.type)) return [];
+    const rv=rankValue(d.rank), ench=Math.max(0,Number(it.enchant)||0);
+    const rankBase={N:3,R:6,SR:12,SSR:24,L:55,M:140}[d.rank]||3;
+    const enchantBonus=ench>0?Math.ceil(rankBase*(ench*0.22))+ench*rv:0;
+    const qty=Math.max(1,rankBase+enchantBonus);
+    const [frag,core]=this.disassembleBaseMaterial(d);
+    const out=[];
+    out.push([frag,qty]);
+    out.push(['v43_magic_dust',Math.max(1,Math.ceil(qty*0.45))]);
+    if(rv>=2) out.push([core,Math.max(1,Math.ceil(qty/(rv>=5?5:6)))]);
+    if(ench>=5) out.push(['v43_bless_dust',Math.max(1,Math.floor((ench-4)*rv))]);
+    if(rv>=4) out.push(['v43_hero_essence',Math.max(1,rv-3)]);
+    if(rv>=5) out.push(['v43_legend_essence',Math.max(1,ench>=7?2:1)]);
+    if(rv>=6) out.push(['v43_myth_essence',Math.max(1,ench>=7?2:1)]);
+    if(DB.item.m18_powder && (rv>=3||ench>=4)) out.push(['m18_powder',Math.max(1,Math.floor(rv*rv/2)+Math.max(0,ench-3)*rv)]);
+    return out.filter(([id,q])=>DB.item[id]&&q>0);
+  };
+
+  Game.disassemblePreview=function(k){
+    const rewards=this.disassembleRewards(k);
+    return rewards.length?rewards.map(([id,q])=>`${this.def(id)?.name||id} ×${q}`).join('、'):'不可分解';
+  };
+
+  Game.disassemble=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id);
+    if(!it||!d) return;
+    if(this.isEquippedKey&&this.isEquippedKey(k)){ alert('此裝備正在穿戴中，請先卸下後再分解。'); this.log('阻止分解已裝備道具：'+d.name,'red'); this.render(); return; }
+    if(!equipTypes.includes(d.type)){ alert('此道具不可分解'); return; }
+    const rewards=this.disassembleRewards(k);
+    if(!rewards.length){ alert('此道具沒有可回收材料'); return; }
+    rewards.forEach(([id,q])=>this.addItem(id,q,0));
+    this.rem(k,1);
+    const line=`分解 ${d.enchant?`+${it.enchant} `:''}${d.name} → ${rewards.map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、')}`;
+    this.s.disassembleLog=this.s.disassembleLog||[];
+    this.s.disassembleLog.unshift({t:Date.now(),item:d.name,rank:d.rank,enchant:it.enchant||0,rewards:rewards.map(([id,q])=>({id,qty:q}))});
+    this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    this.log(line,'green');
+    this.save(false); this.render();
+  };
+
+  Game.disassembleByRank=function(maxRank='R'){
+    const max=rankValue(maxRank); let count=0;
+    const locked=this.equippedKeys?this.equippedKeys():new Set(Object.values(this.s.equip||{}).filter(Boolean));
+    Object.keys(this.s.inv||{}).slice().forEach(k=>{
+      if(locked.has(k)) return;
+      const it=this.inv(k), d=it&&this.def(it.id);
+      if(!d||!equipTypes.includes(d.type)) return;
+      if(rankValue(d.rank)>max) return;
+      this.disassemble(k); count++;
+    });
+    if(!count) alert('沒有符合條件的未穿戴裝備可分解。');
+    else { this.log(`批次分解完成：${count} 件 ${R[maxRank]?.[0]||maxRank} 以下裝備`,'green'); this.render(); }
+  };
+
+  Game.materialRecycleSummary=function(){
+    const ids=['m18_weapon_frag','m18_armor_frag','m18_acc_frag','m18_relic_piece','v43_weapon_core','v43_armor_core','v43_acc_core','v43_magic_dust','v43_bless_dust','m18_powder','v43_hero_essence','v43_legend_essence','v43_myth_essence'];
+    return ids.filter(id=>DB.item[id]).map(id=>`<div class="mini"><span class="r-${DB.item[id].rank}">${esc(DB.item[id].name)}</span><br><span class="muted">持有 ${this.countItem?this.countItem(id):0}</span></div>`).join('');
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='dis') return this.disassemble(arg);
+    if(a==='disRank') return this.disassembleByRank(arg||'R');
+    return oldAction(a,arg,b);
+  };
+
+  if(Game.itemCard){
+    const oldItemCard=Game.itemCard.bind(Game);
+    Game.itemCard=function(k,mode='bag'){
+      let html=oldItemCard(k,mode);
+      const it=this.inv(k), d=it&&this.def(it.id);
+      if(it&&d&&equipTypes.includes(d.type)&&!(this.isEquippedKey&&this.isEquippedKey(k))){
+        const preview=esc(this.disassemblePreview(k));
+        html=html.replace(/<button data-act="dis" data-arg="([^"]+)">分解<\/button>/,`<button data-act="dis" data-arg="$1" title="${preview}">分解材料</button>`);
+        html=html.replace(/<\/div>\s*<\/div>$/,'<div class="mini green">分解預覽：'+preview+'</div></div>');
+      }
+      return html;
+    };
+  }
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    const base=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43 分解材料工具</b><span class="muted">只處理未穿戴裝備</span></div><div style="margin-top:8px"><button data-act="disRank" data-arg="N">批次分解一般</button> <button data-act="disRank" data-arg="R">批次分解高級以下</button> <button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div><div class="grid cards" style="margin-top:8px">${this.materialRecycleSummary()}</div></div>`;
+    return base.replace('<h3 class="title">背包</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewCraft=Game.viewCraft.bind(Game);
+  Game.viewCraft=function(){
+    return oldViewCraft()+`<div class="card"><b class="gold">V43 分解材料規則</b><br><span class="muted">武器、防具、飾品、符石、印章、聖物會回收不同核心材料；品階越高、強化越高，回收量越多。英雄以上追加精華，+5 以上追加祝福殘粉。</span><div class="grid cards" style="margin-top:8px">${this.materialRecycleSummary()}</div></div>`;
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    return oldViewDash()+`<div class="card"><b class="gold">V43 版本整理</b><br><span class="muted">目前公開版本統一為 V43；舊版補丁保留為 Legacy Layer，避免破壞既有存檔與功能。新增分解材料預覽、批次分解、品階/強化值回收倍率。</span></div>`;
+  };
+
+  const oldViewAudit=Game.viewAudit.bind(Game);
+  Game.viewAudit=function(){
+    const materials=Object.values(DB.item).filter(i=>i.type==='material').length;
+    return oldViewAudit()+`<div class="card"><b class="gold">V43 整理檢查</b><br><span class="muted">目前版本：${APP_VERSION}<br>已整理舊版標籤為 Legacy Layer：${DB.versionHistory.previous.join('、')}<br>分解材料種類：${materials}<br>分解保護：已裝備道具不可分解/賣出；批次分解只處理未穿戴裝備。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus();
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43｜分解材料優化版';
+    const sub=this.$&&this.$('subtitle'); if(sub&&this.s) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/g,'V43');
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{
+    document.title='天堂M Core Rebuild V43｜分解材料優化版';
+    setText('#start h1','天堂M Core Rebuild V43');
+    setText('#app .top .title','天堂M Core Rebuild V43｜分解材料優化版');
+  });
+})();
+
 </script>
 
 </body></html>
