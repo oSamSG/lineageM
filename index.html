@@ -4990,4 +4990,168 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 })();
 </script>
 
+
+
+<!-- === V42 地圖圖鑑怪物 / Boss 分類修正版 ===
+  修復：Boss 同時出現在「地圖怪物」與「Boss」區塊、以及 Boss 清單被 DB.bosses 泛用 zone 帶入過多的問題。
+  規則：
+  1) 怪物區只顯示一般怪物。
+  2) Boss 區只顯示 map.bosses、map.mons 內明確 Boss 名稱、或 DB.bosses 有 map/mapId 明確對應的 Boss。
+  3) 不再用 zone.includes(mapId) 或 mapName.includes(bossName) 這類寬鬆規則，避免龍谷帶出四龍全 Boss。
+-->
+<script>
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const uniq=a=>[...new Set((a||[]).filter(v=>v!==undefined&&v!==null&&String(v).trim()!=='').map(v=>String(v).trim()))];
+  const itemName=id=>(DB.item&&DB.item[id]?DB.item[id].name:id);
+  const dropsOf=map=>uniq([...(map?.drops||[]),...(map?.materialDrops||[]),...(map?.skillBookDrops||[])]).filter(id=>DB.item&&DB.item[id]);
+  const statName={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',dmg:'傷害',hit:'命中',dr:'減傷',mr:'MR',spd:'速度',hp:'HP',mp:'MP',ac:'AC'};
+  const statLine=o=>Object.entries(o||{}).map(([k,v])=>`${statName[k]||k}${Number(v)>=0?'+':''}${v}`).join('、')||'無';
+
+  const BOSS_EXACT_RE=/^(安塔瑞斯|巴拉卡斯|法利昂|林德拜爾|吉爾塔斯|巴風特|巴風特侍徒|死亡騎士|巫妖|木乃伊王|吸血鬼|巨蟻女皇|不死鳥|惡魔|克特|賽尼斯|飛龍王|巨大飛龍|巨大骷髏|巨大守護螞蟻|騎士范德|黑暗大法師|烏格奴斯|鐮刀死神|地獄君主|遺忘之王|拉斯塔巴德君王|城主幻影|監獄長|船長|奧曼大將|修練首領)$/i;
+  const BOSS_WORD_RE=/(首領|君主|女皇|大法師|死神|監獄長|城主|船長|大將|飛龍王|守護螞蟻|巴風特侍徒)$/i;
+
+  function rewardForMapV42(map){
+    const lv=Number(map?.min)||1;
+    const key=String((map?.name||'')+' '+(map?.id||''));
+    const fixed={talking:{hp:30},gludin:{ac:-1},giran:{dmg:1},dragon:{dmg:2,hit:1},toi:{dr:1,mr:5},lastabad:{dmg:2,dr:1},antharas:{hp:120,dr:2},valakas:{dmg:3,hp:80}};
+    if(fixed[map?.id]) return fixed[map.id];
+    if(/安塔|巴拉|法利|林德|四龍/i.test(key)) return {dmg:2,dr:1,hp:80};
+    if(/傲慢|支配|遺忘|地獄|拉斯塔/i.test(key)) return {dmg:1,dr:1,mr:5};
+    if(lv>=75) return {dmg:1,dr:1};
+    if(lv>=45) return {hit:1,hp:50};
+    if(lv>=20) return {hp:30};
+    return {hp:15};
+  }
+
+  Game.versionLabel='V42';
+  document.title='天堂M Core Rebuild V42｜地圖圖鑑分類修正版';
+  const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V42';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V42';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V42 地圖圖鑑怪物與 Boss 分類修正版。';
+
+  Game.mapBossNamesV42=function(map){
+    map=map||this.map();
+    const mapId=String(map?.id||'');
+    const fromMapBosses=uniq(map?.bosses||[]);
+    const fromMapMons=uniq(map?.mons||[]).filter(n=>BOSS_EXACT_RE.test(n)||BOSS_WORD_RE.test(n));
+    const fromBossDb=uniq((DB.bosses||[]).filter(b=>{
+      const bid=String(b.mapId||b.map||'');
+      // 只接受明確 map/mapId 對應；不使用模糊 zone 避免跨地圖誤帶。
+      return bid && bid===mapId;
+    }).map(b=>b.name));
+    return uniq([...fromMapBosses,...fromMapMons,...fromBossDb]);
+  };
+
+  Game.mapMonsterNamesV42=function(map){
+    map=map||this.map();
+    const bosses=this.mapBossNamesV42(map);
+    return uniq(map?.mons||[]).filter(n=>!bosses.includes(n));
+  };
+
+  // 覆蓋舊版函式，確保所有既有 view / progress 都走新規則。
+  Game.mapBossNamesV41=function(map){return this.mapBossNamesV42(map);};
+  Game.mapMonsterNamesV41=function(map){return this.mapMonsterNamesV42(map);};
+  Game.isBossNameV41=function(name,map){
+    const n=String(name||'').trim(); if(!n) return false;
+    return this.mapBossNamesV42(map||this.map()).includes(n) || BOSS_EXACT_RE.test(n) || BOSS_WORD_RE.test(n);
+  };
+
+  Game.rebuildCodexV42=function(showLog=true){
+    this.ensure();
+    (DB.maps||[]).forEach(m=>{
+      this.s.mapMonsterSeen[m.id]=this.s.mapMonsterSeen[m.id]||{};
+      this.s.mapBossSeen[m.id]=this.s.mapBossSeen[m.id]||{};
+      const bosses=this.mapBossNamesV42(m);
+      const monsters=this.mapMonsterNamesV42(m);
+      // 清掉同一地圖下 Boss 被誤塞進怪物已見清單的狀態；不刪全域擊殺數。
+      bosses.forEach(n=>{ if(this.s.mapMonsterSeen[m.id]) delete this.s.mapMonsterSeen[m.id][n]; });
+      monsters.forEach(n=>{ if((this.s.codexMon[n]||0)>0) this.s.mapMonsterSeen[m.id][n]=true; });
+      bosses.forEach(n=>{ if((this.s.codexBoss[n]||0)>0 || (this.s.codexMon[n]||0)>0) this.s.mapBossSeen[m.id][n]=true; });
+      if((this.s.codexMap[m.id]||0)>0 || this.s.mapDiscovered[m.id]) this.s.mapDiscovered[m.id]=true;
+    });
+    this.s.version='core_rebuild_v42_mapbook_classification_fix';
+    if(showLog) this.log('V42：地圖圖鑑怪物 / Boss 分類已修復','green');
+    this.save(false);
+    if(showLog) this.render();
+  };
+
+  const oldEnter=Game.enter;
+  Game.enter=function(){ oldEnter.call(this); this.rebuildCodexV42(false); };
+
+  const oldRenderStatus=Game.renderStatus;
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V42';
+    const m=this.map?this.map():null, mi=this.$&&this.$('mapInfo');
+    if(mi&&m){
+      const monsters=this.mapMonsterNamesV42(m), bosses=this.mapBossNamesV42(m);
+      const monSeen=monsters.filter(n=>(this.s.codexMon?.[n]||0)>0 || !!this.s.mapMonsterSeen?.[m.id]?.[n]).length;
+      const bossSeen=bosses.filter(n=>(this.s.codexBoss?.[n]||0)>0 || !!this.s.mapBossSeen?.[m.id]?.[n] || (this.s.codexMon?.[n]||0)>0).length;
+      mi.innerHTML=`<div><b>${esc(m.name)}</b> Lv.${m.min}-${m.max}</div><div>怪物 ${monsters.length}｜Boss ${bosses.length}｜登錄 ${monSeen+bossSeen}/${monsters.length+bosses.length}</div>`;
+    }
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='rebuildCodexV42'||a==='rebuildCodexV41'||a==='rebuildCodexV40'){
+      this.rebuildCodexV42(true);return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  Game.viewMapBookV23=function(){
+    this.ensure();
+    this.rebuildCodexV42(false);
+    this.pageState=this.pageState||{};
+    const q=String(this.pageState.mapDropSearch||'').trim().toLowerCase();
+    const filter=this.pageState.mapRuleFilter||'all';
+    let maps=(DB.maps||[]).slice();
+    if(q){
+      maps=maps.filter(m=>[
+        m.name,m.id,...this.mapMonsterNamesV42(m),...this.mapBossNamesV42(m),...dropsOf(m).map(id=>itemName(id)),...dropsOf(m)
+      ].join(' ').toLowerCase().includes(q));
+    }
+    if(filter==='current') maps=maps.filter(m=>m.id===this.s.map);
+    if(filter==='ready') maps=maps.filter(m=>this.mapBookCanClaimV41(m)&&!(this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]));
+    if(filter==='claimed') maps=maps.filter(m=>this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]);
+    if(filter==='undiscovered') maps=maps.filter(m=>!this.s.mapDiscovered?.[m.id]);
+    maps.sort((a,b)=>this.mapProgressV41(b).total-this.mapProgressV41(a).total || (a.min||0)-(b.min||0));
+    const all=DB.maps||[];
+    const readyCnt=all.filter(m=>this.mapBookCanClaimV41(m)&&!(this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id])).length;
+    const claimedCnt=all.filter(m=>this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]).length;
+    const rows=maps.map(map=>{
+      const p=this.mapProgressV41(map), active=this.s.map===map.id;
+      const monsters=this.mapMonsterNamesV42(map), bosses=this.mapBossNamesV42(map);
+      const claimed=!!(this.s.mapClaimed?.[map.id]||this.s.claimed?.['map_'+map.id]);
+      const canClaim=this.mapBookCanClaimV41(map)&&!claimed;
+      const monHtml=monsters.map(n=>{
+        const k=this.s.codexMon?.[n]||0, seen=!!this.s.mapMonsterSeen?.[map.id]?.[n]||k>0;
+        return `<span class="pill ${seen?'green':''}">${esc(n)} ${k}</span>`;
+      }).join('')||'<span class="muted">此地圖尚未設定一般怪物</span>';
+      const bossHtml=bosses.map(n=>{
+        const k=Math.max(this.s.codexBoss?.[n]||0,this.s.codexMon?.[n]||0), seen=!!this.s.mapBossSeen?.[map.id]?.[n]||k>0;
+        return `<span class="pill ${seen?'red':''}">${esc(n)} ${k}</span>`;
+      }).join('')||'<span class="muted">此地圖無指定 Boss</span>';
+      const dropHtml=dropsOf(map).map(id=>`<span class="pill ${q&&(String(itemName(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q))?'gold':''}">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+      return `<div class="map-v41-card ${active?'active':''} ${canClaim?'ready':''} ${claimed?'done':''}">
+        <div class="row"><div><b class="gold">${esc(map.name)}</b> <span class="pill">Lv.${map.min}-${map.max}</span> ${claimed?'<span class="pill green">已領取</span>':canClaim?'<span class="pill red">可領取</span>':this.s.mapDiscovered?.[map.id]?'<span class="pill blue">已探索</span>':'<span class="pill">未探索</span>'}<br><span class="muted">獎勵：${esc(statLine(rewardForMapV42(map)))}</span></div><div><button data-act="goMap" data-arg="${esc(map.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button> <button data-act="claimMapReward" data-arg="${esc(map.id)}" ${canClaim?'':'disabled'}>領取</button></div></div>
+        <div class="bar"><i class="exp" style="width:${Math.max(0,Math.min(100,p.total))}%"></i><span>${p.total}%</span></div>
+        <div class="map-v41-sub"><span>探索 ${p.explore}/100</span><span>怪物 ${p.monCount}/${monsters.length}</span><span>Boss ${p.bossCount}/${bosses.length}</span><span>掉落 ${dropsOf(map).length}</span></div>
+        <details open><summary>地圖怪物</summary><div class="drop-box"><b>怪物</b>${monHtml}</div></details>
+        <details open><summary>Boss</summary><div class="drop-box"><b>Boss</b>${bossHtml}</div></details>
+        <details ${q?'open':''}><summary>掉落</summary><div class="drop-box"><b>掉落</b>${dropHtml}</div></details>
+      </div>`;
+    }).join('');
+    const filters=[['all','全部'],['current','目前地圖'],['ready','可領取'],['claimed','已領取'],['undiscovered','未探索']];
+    return (this.hero?this.hero('地圖圖鑑 V42','一般怪物與 Boss 已分開計算；Boss 不會再重複顯示在怪物區。','<button data-act="rebuildCodexV42" class="gold">重建圖鑑資料</button>'):'<h3 class="title">地圖圖鑑 V42</h3>')+
+      (this.statCards?this.statCards([['地圖',all.length,'gold'],['已探索',all.filter(m=>this.s.mapDiscovered?.[m.id]).length+'/'+all.length,'green'],['可領取',readyCnt,'red'],['已領取',claimedCnt,'blue'],['顯示結果',maps.length,'cyan']]):'')+
+      `<div class="card"><b class="gold">整理規則</b><div class="map-v41-rules"><span>怪物：只顯示一般怪物</span><span>Boss：只顯示明確 Boss</span><span>掉落：drops + materialDrops + skillBookDrops</span><span>修復：Boss 不再重複列入怪物</span></div></div>`+
+      `<div class="card"><div class="row"><b>搜尋掉落 / 怪物 / Boss</b><input data-map-drop-search="1" value="${esc(this.pageState.mapDropSearch||'')}" placeholder="輸入道具、技能書、怪物、Boss、地圖名稱" style="min-width:280px;flex:1"></div></div>`+
+      `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="mapRuleFilterV41" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${rows||'<p class="muted">沒有符合條件的地圖</p>'}</div>`;
+  };
+})();
+</script>
+
 </body></html>
