@@ -4740,4 +4740,254 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 })();
 </script>
 
+
+
+<!-- === V41 地圖圖鑑怪物顯示與規則整理修正版 ===
+  1) 地圖圖鑑的「怪物」永遠以 DB.maps[].mons 為來源完整顯示，不再因 Boss 判斷被濾掉。
+  2) Boss 改為獨立規則：map.bosses、DB.bosses.zone、以及明確 Boss 關鍵字。
+  3) 擊殺後同步寫入 mapMonsterSeen / mapBossSeen，舊存檔可用重建按鈕修復。
+  4) 地圖圖鑑畫面改成：規則、地圖資訊、怪物、Boss、掉落搜尋分區顯示。
+-->
+<script>
+(function(){
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const uniq=a=>[...new Set((a||[]).filter(v=>v!==undefined&&v!==null&&String(v).trim()!=='').map(v=>String(v).trim()))];
+  const itemName=id=>(DB.item&&DB.item[id]?DB.item[id].name:id);
+  const dropsOf=map=>uniq([...(map?.drops||[]),...(map?.materialDrops||[]),...(map?.skillBookDrops||[])]).filter(id=>DB.item&&DB.item[id]);
+  const statName={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',dmg:'傷害',hit:'命中',dr:'減傷',mr:'MR',spd:'速度',hp:'HP',mp:'MP',ac:'AC'};
+  const statLine=o=>Object.entries(o||{}).map(([k,v])=>`${statName[k]||k}${Number(v)>=0?'+':''}${v}`).join('、')||'無';
+
+  // 嚴格 Boss 規則：避免「飛龍、骨龍、龍人戰士」被誤判為 Boss 後從怪物清單消失。
+  const STRICT_BOSS_RE=/^(安塔瑞斯|巴拉卡斯|法利昂|林德拜爾|吉爾塔斯|巴風特|死亡騎士|巫妖|木乃伊王|吸血鬼|巨蟻女皇|不死鳥|惡魔|克特|賽尼斯|飛龍王|巨大飛龍|巨大骷髏|巨大守護螞蟻|騎士范德|黑暗大法師|烏格奴斯|鐮刀死神|地獄君主|遺忘之王|拉斯塔巴德君王|城主幻影|監獄長|船長|奧曼大將|修練首領)$/i;
+  const BOSS_WORD_RE=/世界王|血盟Boss|BOSS|Boss|首領|君主|女皇|大法師|死神|監獄長|城主|船長|大將|飛龍王|守護螞蟻/i;
+
+  function rewardForMap(map){
+    const lv=Number(map?.min)||1;
+    const key=String((map?.name||'')+' '+(map?.id||''));
+    const fixed={talking:{hp:30},gludin:{ac:-1},giran:{dmg:1},dragon:{dmg:2,hit:1},toi:{dr:1,mr:5},lastabad:{dmg:2,dr:1},antharas:{hp:120,dr:2},valakas:{dmg:3,hp:80}};
+    if(fixed[map?.id]) return fixed[map.id];
+    if(/安塔|巴拉|法利|林德|四龍/i.test(key)) return {dmg:2,dr:1,hp:80};
+    if(/傲慢|支配|遺忘|地獄|拉斯塔/i.test(key)) return {dmg:1,dr:1,mr:5};
+    if(lv>=75) return {dmg:1,dr:1};
+    if(lv>=45) return {hit:1,hp:50};
+    if(lv>=20) return {hp:30};
+    return {hp:15};
+  }
+
+  Game.versionLabel='V41';
+  document.title='天堂M Core Rebuild V41｜地圖圖鑑規則修正版';
+  const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V41';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V41';
+  const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V41 地圖圖鑑規則修正版。';
+
+  Game.mapByIdV41=function(id){return (DB.maps||[]).find(m=>String(m.id)===String(id))||this.map();};
+  Game.mapMonsterNamesV41=function(map){
+    map=map||this.map();
+    // 重要：地圖怪物一律完整顯示 DB.maps[].mons，不再用 Boss 規則過濾。
+    return uniq(map?.mons||[]);
+  };
+  Game.mapBossNamesV41=function(map){
+    map=map||this.map();
+    const mapId=String(map?.id||'').toLowerCase();
+    const mapName=String(map?.name||'').toLowerCase();
+    const fromMapBosses=uniq(map?.bosses||[]);
+    const fromExplicitMons=uniq(map?.mons||[]).filter(n=>STRICT_BOSS_RE.test(n)||BOSS_WORD_RE.test(n));
+    const fromBossDb=uniq((DB.bosses||[]).filter(b=>{
+      const zone=String(b.zone||'').toLowerCase();
+      const id=String(b.mapId||b.map||'').toLowerCase();
+      const name=String(b.name||'').toLowerCase();
+      return (zone&&zone===mapId) || (id&&id===mapId) || (zone&&zone.includes(mapId)) || mapName.includes(name);
+    }).map(b=>b.name));
+    return uniq([...fromMapBosses,...fromExplicitMons,...fromBossDb]);
+  };
+  Game.isBossNameV41=function(name,map){
+    const n=String(name||'').trim(); if(!n) return false;
+    return this.mapBossNamesV41(map||this.map()).includes(n) || STRICT_BOSS_RE.test(n) || BOSS_WORD_RE.test(n);
+  };
+
+  const oldEnsure=Game.ensure;
+  Game.ensure=function(){
+    oldEnsure.call(this);
+    if(!this.s) return;
+    this.s.version='core_rebuild_v41_mapbook_rules_fix';
+    this.s.codexMon=this.s.codexMon||{};
+    this.s.codexBoss=this.s.codexBoss||{};
+    this.s.codexMap=this.s.codexMap||{};
+    this.s.mapDiscovered=this.s.mapDiscovered||{};
+    this.s.mapClaimed=this.s.mapClaimed||{};
+    this.s.claimed=this.s.claimed||{};
+    this.s.mapMonsterSeen=this.s.mapMonsterSeen||{};
+    this.s.mapBossSeen=this.s.mapBossSeen||{};
+    (DB.maps||[]).forEach(m=>{
+      this.s.mapMonsterSeen[m.id]=this.s.mapMonsterSeen[m.id]||{};
+      this.s.mapBossSeen[m.id]=this.s.mapBossSeen[m.id]||{};
+    });
+    if(this.s.map){
+      this.s.mapDiscovered[this.s.map]=true;
+      this.s.codexMap[this.s.map]=Math.max(this.s.codexMap[this.s.map]||0,1);
+    }
+  };
+
+  Game.rebuildCodexV41=function(showLog=true){
+    this.ensure();
+    (DB.maps||[]).forEach(m=>{
+      this.s.mapMonsterSeen[m.id]=this.s.mapMonsterSeen[m.id]||{};
+      this.s.mapBossSeen[m.id]=this.s.mapBossSeen[m.id]||{};
+      // 只根據已有擊殺數標綠，不把未擊殺怪物假登錄；但清單一定會顯示。
+      this.mapMonsterNamesV41(m).forEach(n=>{ if((this.s.codexMon[n]||0)>0) this.s.mapMonsterSeen[m.id][n]=true; });
+      this.mapBossNamesV41(m).forEach(n=>{ if((this.s.codexBoss[n]||0)>0) this.s.mapBossSeen[m.id][n]=true; });
+      if((this.s.codexMap[m.id]||0)>0 || this.s.mapDiscovered[m.id]) this.s.mapDiscovered[m.id]=true;
+    });
+    if(showLog) this.log('V41：地圖圖鑑怪物與 Boss 規則已重建','green');
+    this.save(false);
+    if(showLog) this.render();
+  };
+
+  const oldEnter=Game.enter;
+  Game.enter=function(){oldEnter.call(this); this.rebuildCodexV41(false);};
+
+  const oldSpawn=Game.spawn;
+  Game.spawn=function(){
+    oldSpawn.call(this);
+    if(!this.s||!this.s.mon) return;
+    const map=this.map();
+    this.s.mon.map=this.s.map;
+    this.s.mapDiscovered[this.s.map]=true;
+    this.s.codexMap[this.s.map]=Math.max(this.s.codexMap[this.s.map]||0,5);
+    if(this.isBossNameV41(this.s.mon.name,map)) this.s.mon.boss=true;
+  };
+
+  const oldKill=Game.kill;
+  Game.kill=function(mon,bonus){
+    const mapId=String((mon&&mon.map)||this.s?.map||'');
+    const map=this.mapByIdV41(mapId);
+    const name=String(mon?.name||'').trim();
+    const boss=this.isBossNameV41(name,map) || !!mon?.boss;
+    this.ensure();
+    const beforeMon=this.s.codexMon[name]||0;
+    const beforeBoss=this.s.codexBoss[name]||0;
+    if(mon){mon.map=mapId; if(boss) mon.boss=true;}
+    oldKill.call(this,mon,bonus);
+    if(name){
+      if((this.s.codexMon[name]||0)<=beforeMon) this.s.codexMon[name]=beforeMon+1;
+      this.s.mapMonsterSeen[mapId]=this.s.mapMonsterSeen[mapId]||{};
+      this.s.mapMonsterSeen[mapId][name]=true;
+      if(boss){
+        if((this.s.codexBoss[name]||0)<=beforeBoss) this.s.codexBoss[name]=beforeBoss+1;
+        this.s.mapBossSeen[mapId]=this.s.mapBossSeen[mapId]||{};
+        this.s.mapBossSeen[mapId][name]=true;
+      }
+    }
+    this.s.mapDiscovered[mapId]=true;
+    this.s.codexMap[mapId]=Math.max(this.s.codexMap[mapId]||0,Math.min(100,(this.s.codexMap[mapId]||0)+4));
+    this.save(false);
+  };
+
+  Game.mapProgressV41=function(map){
+    this.ensure();
+    const monsters=this.mapMonsterNamesV41(map);
+    const bosses=this.mapBossNamesV41(map);
+    const explore=Math.max(0,Math.min(100,Number(this.s.codexMap?.[map.id]||0)));
+    const monCount=monsters.filter(n=>(this.s.codexMon?.[n]||0)>0 || !!this.s.mapMonsterSeen?.[map.id]?.[n]).length;
+    const bossCount=bosses.filter(n=>(this.s.codexBoss?.[n]||0)>0 || !!this.s.mapBossSeen?.[map.id]?.[n]).length;
+    const monPct=monsters.length?Math.floor(monCount/monsters.length*100):100;
+    const bossPct=bosses.length?Math.floor(bossCount/bosses.length*100):100;
+    const total=Math.floor(explore*.5+monPct*.35+bossPct*.15);
+    return {explore,monsters,bosses,monCount,bossCount,monPct,bossPct,total};
+  };
+  Game.mapProgressV40=function(map){return this.mapProgressV41(map);};
+
+  Game.mapBookCanClaimV41=function(map){
+    const p=this.mapProgressV41(map);
+    return p.total>=100 || (p.explore>=100 && p.monCount>=p.monsters.length && p.bossCount>=p.bosses.length);
+  };
+
+  const oldRenderStatus=Game.renderStatus;
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V41';
+    const m=this.map?this.map():null, mi=this.$&&this.$('mapInfo');
+    if(mi&&m){
+      const p=this.mapProgressV41(m);
+      mi.innerHTML=`<div><b>${esc(m.name)}</b> Lv.${m.min}-${m.max}</div><div>怪物 ${p.monsters.length}｜Boss ${p.bosses.length}｜已登錄 ${p.monCount+p.bossCount}/${p.monsters.length+p.bosses.length}</div>`;
+    }
+  };
+
+  const oldAction=Game.action;
+  Game.action=function(a,arg,b){
+    if(a==='rebuildCodexV41'||a==='rebuildCodexV40'){this.rebuildCodexV41(true);return;}
+    if(a==='mapRuleFilterV41'){this.pageState=this.pageState||{};this.pageState.mapRuleFilter=arg||'all';this.renderTab();return;}
+    if(a==='claimMapReward'||a==='claimMapBookV31'){
+      this.ensure();
+      const map=(DB.maps||[]).find(m=>String(m.id)===String(arg));
+      if(!map) return alert('找不到地圖資料');
+      if(this.s.mapClaimed[map.id]||this.s.claimed['map_'+map.id]) return alert('此地圖獎勵已領取');
+      if(!this.mapBookCanClaimV41(map)) return alert('地圖圖鑑尚未完成');
+      this.s.mapClaimed[map.id]=true; this.s.claimed['map_'+map.id]=1;
+      if(DB.item&&DB.item.m18_powder) this.addItem('m18_powder',80);
+      if(DB.item&&DB.item.v23_pattern_stone) this.addItem('v23_pattern_stone',2);
+      if(DB.item&&DB.item.v23_event_coin) this.addItem('v23_event_coin',5);
+      this.log('已領取地圖圖鑑獎勵：'+map.name+'｜'+statLine(rewardForMap(map)),'gold');
+      this.save(false); this.render(); return;
+    }
+    return oldAction.call(this,a,arg,b);
+  };
+
+  Game.viewMapBookV23=function(){
+    this.ensure();
+    this.rebuildCodexV41(false);
+    this.pageState=this.pageState||{};
+    const q=String(this.pageState.mapDropSearch||'').trim().toLowerCase();
+    const filter=this.pageState.mapRuleFilter||'all';
+    let maps=(DB.maps||[]).slice();
+    if(q){
+      maps=maps.filter(m=>[
+        m.name,m.id,...this.mapMonsterNamesV41(m),...this.mapBossNamesV41(m),...dropsOf(m).map(id=>itemName(id)),...dropsOf(m)
+      ].join(' ').toLowerCase().includes(q));
+    }
+    if(filter==='current') maps=maps.filter(m=>m.id===this.s.map);
+    if(filter==='ready') maps=maps.filter(m=>this.mapBookCanClaimV41(m)&&!(this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]));
+    if(filter==='claimed') maps=maps.filter(m=>this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]);
+    if(filter==='undiscovered') maps=maps.filter(m=>!this.s.mapDiscovered?.[m.id]);
+    maps.sort((a,b)=>this.mapProgressV41(b).total-this.mapProgressV41(a).total || (a.min||0)-(b.min||0));
+    const all=DB.maps||[];
+    const readyCnt=all.filter(m=>this.mapBookCanClaimV41(m)&&!(this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id])).length;
+    const claimedCnt=all.filter(m=>this.s.mapClaimed?.[m.id]||this.s.claimed?.['map_'+m.id]).length;
+    const rows=maps.map(map=>{
+      const p=this.mapProgressV41(map), active=this.s.map===map.id;
+      const claimed=!!(this.s.mapClaimed?.[map.id]||this.s.claimed?.['map_'+map.id]);
+      const canClaim=this.mapBookCanClaimV41(map)&&!claimed;
+      const monHtml=p.monsters.map(n=>{
+        const k=this.s.codexMon?.[n]||0, seen=!!this.s.mapMonsterSeen?.[map.id]?.[n]||k>0;
+        return `<span class="pill ${seen?'green':''}">${esc(n)} ${k}</span>`;
+      }).join('')||'<span class="muted">此地圖尚未設定怪物</span>';
+      const bossHtml=p.bosses.map(n=>{
+        const k=this.s.codexBoss?.[n]||0, seen=!!this.s.mapBossSeen?.[map.id]?.[n]||k>0;
+        return `<span class="pill ${seen?'red':''}">${esc(n)} ${k}</span>`;
+      }).join('')||'<span class="muted">此地圖無指定 Boss</span>';
+      const dropHtml=dropsOf(map).map(id=>`<span class="pill ${q&&(String(itemName(id)).toLowerCase().includes(q)||String(id).toLowerCase().includes(q))?'gold':''}">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+      return `<div class="map-v41-card ${active?'active':''} ${canClaim?'ready':''} ${claimed?'done':''}">
+        <div class="row"><div><b class="gold">${esc(map.name)}</b> <span class="pill">Lv.${map.min}-${map.max}</span> ${claimed?'<span class="pill green">已領取</span>':canClaim?'<span class="pill red">可領取</span>':this.s.mapDiscovered?.[map.id]?'<span class="pill blue">已探索</span>':'<span class="pill">未探索</span>'}<br><span class="muted">獎勵：${esc(statLine(rewardForMap(map)))}</span></div><div><button data-act="goMap" data-arg="${esc(map.id)}" ${active?'disabled':''}>${active?'狩獵中':'前往'}</button> <button data-act="claimMapReward" data-arg="${esc(map.id)}" ${canClaim?'':'disabled'}>領取</button></div></div>
+        <div class="bar"><i class="exp" style="width:${Math.max(0,Math.min(100,p.total))}%"></i><span>${p.total}%</span></div>
+        <div class="map-v41-sub"><span>探索 ${p.explore}/100</span><span>怪物 ${p.monCount}/${p.monsters.length}</span><span>Boss ${p.bossCount}/${p.bosses.length}</span><span>掉落 ${dropsOf(map).length}</span></div>
+        <details open><summary>地圖怪物</summary><div class="drop-box"><b>怪物</b>${monHtml}</div></details>
+        <details><summary>Boss</summary><div class="drop-box"><b>Boss</b>${bossHtml}</div></details>
+        <details ${q?'open':''}><summary>掉落</summary><div class="drop-box"><b>掉落</b>${dropHtml}</div></details>
+      </div>`;
+    }).join('');
+    const filters=[['all','全部'],['current','目前地圖'],['ready','可領取'],['claimed','已領取'],['undiscovered','未探索']];
+    return (this.hero?this.hero('地圖圖鑑 V41','地圖怪物固定由地圖資料表顯示；Boss 與掉落改為獨立規則。','<button data-act="rebuildCodexV41" class="gold">重建圖鑑資料</button>'):'<h3 class="title">地圖圖鑑 V41</h3>')+
+      (this.statCards?this.statCards([['地圖',all.length,'gold'],['已探索',all.filter(m=>this.s.mapDiscovered?.[m.id]).length+'/'+all.length,'green'],['可領取',readyCnt,'red'],['已領取',claimedCnt,'blue'],['顯示結果',maps.length,'cyan']]):'')+
+      `<div class="card"><b class="gold">整理規則</b><div class="map-v41-rules"><span>怪物：DB.maps[].mons 全部顯示</span><span>Boss：map.bosses / DB.bosses / 明確 Boss 名稱</span><span>掉落：drops + materialDrops + skillBookDrops</span><span>登錄：擊殺後寫入怪物與 Boss 紀錄</span></div></div>`+
+      `<div class="card"><div class="row"><b>搜尋掉落 / 怪物 / Boss</b><input data-map-drop-search="1" value="${esc(this.pageState.mapDropSearch||'')}" placeholder="輸入道具、技能書、怪物、Boss、地圖名稱" style="min-width:280px;flex:1"></div></div>`+
+      `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="mapRuleFilterV41" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${rows||'<p class="muted">沒有符合條件的地圖</p>'}</div>`;
+  };
+
+  const css=document.createElement('style');
+  css.textContent=`.map-v41-card{background:#081120;border:1px solid #26364e;border-radius:14px;padding:12px;margin-bottom:10px}.map-v41-card.active{border-color:#facc15;background:#151807}.map-v41-card.ready{border-color:#ef4444}.map-v41-card.done{border-color:#22c55e}.map-v41-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:#94a3b8;font-size:13px;margin:8px 0}.map-v41-card summary{cursor:pointer;color:#e5eef9;margin-top:8px}.map-v41-card .drop-box{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.map-v41-card .drop-box b{color:#facc15;margin-right:4px}.map-v41-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}.map-v41-rules span{background:#07101d;border:1px solid #26364e;border-radius:10px;padding:8px;color:#cbd5e1}.pill.red{border-color:#ef4444;color:#fca5a5;background:#2a0f12}.pill.blue{border-color:#60a5fa;color:#93c5fd;background:#0b1628}.pill.gold{border-color:#facc15;color:#facc15;background:#2b2512}`;
+  document.head.appendChild(css);
+})();
+</script>
+
 </body></html>
