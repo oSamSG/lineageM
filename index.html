@@ -2617,6 +2617,220 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   };
 })();
 
+
+
+/* === V43.1 FULL AUTO OPTIMIZATION LAYER ===
+   目標：檢查全站可自動化流程，集中補上自動分解、背包整理、材料統計、每日流程、存檔修復與批次效能優化。
+   原則：不移除舊補丁，使用最後覆蓋層降低破壞既有存檔與功能的風險。 */
+(function(){
+  const VERSION='V43.1';
+  const rankValue=r=>(R&&R[r]?R[r][1]:1);
+  const rankName=r=>(R&&R[r]?R[r][0]:r);
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const stackTypes=['potion','scroll','material','box','book'];
+  const safeEsc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const now=()=>Date.now();
+
+  function addCss(){
+    if(document.getElementById('v431-css')) return;
+    const css=document.createElement('style'); css.id='v431-css';
+    css.textContent=`
+      .auto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:10px}
+      .auto-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px}
+      .auto-card .row{align-items:center}.auto-card input[type=checkbox]{width:18px;height:18px}.auto-card select{width:120px}
+      .quick-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.quick-actions button{padding:6px 9px}
+      .health-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px}
+      .health-line div{background:#07101d;border:1px solid #26364e;border-radius:10px;padding:8px}
+      .v431-ok{color:#86efac}.v431-warn{color:#facc15}.v431-bad{color:#fca5a5}
+    `; document.head.appendChild(css);
+  }
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+
+  function normalizeSettings(s){
+    s.settings=s.settings||{};
+    Object.assign(s.settings,{
+      autoPotion:s.settings.autoPotion!==false,
+      autoBuy:!!s.settings.autoBuy,
+      autoBoss:!!s.settings.autoBoss,
+      autoSell:!!s.settings.autoSell,
+      autoDisassemble:!!s.settings.autoDisassemble,
+      autoDisRank:s.settings.autoDisRank||'N',
+      autoUseLeafBox:!!s.settings.autoUseLeafBox,
+      autoUseSkillBooks:!!s.settings.autoUseSkillBooks,
+      autoDailyDungeon:!!s.settings.autoDailyDungeon,
+      autoDailyBoss:!!s.settings.autoDailyBoss,
+      autoCleanBag:!!s.settings.autoCleanBag,
+      autoSaveSec:Number(s.settings.autoSaveSec||30)
+    });
+    if(!Array.isArray(s.settings.autoSkills)) s.settings.autoSkills=[];
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_full_auto_optimized';
+    this.s.optimizationLog=this.s.optimizationLog||[];
+    this.s.autoRun=this.s.autoRun||{lastSave:0,lastClean:0,lastDis:0,lastLeaf:0,lastBook:0,lastDaily:0};
+    normalizeSettings(this.s);
+    this.repairSaveLite&&this.repairSaveLite(false);
+  };
+
+  Game.repairSaveLite=function(verbose=true){
+    if(!this.s) return {fixed:0};
+    let fixed=0;
+    this.s.inv=this.s.inv||{}; this.s.equip=this.s.equip||{};
+    Object.keys(this.s.inv).forEach(k=>{ const it=this.s.inv[k]; if(!it||!DB.item[it.id]){delete this.s.inv[k]; fixed++; return;} it.qty=Math.max(1,Math.floor(Number(it.qty)||1)); it.enchant=Math.max(0,Math.floor(Number(it.enchant)||0)); });
+    Object.keys(this.s.equip).forEach(slot=>{ const k=this.s.equip[slot]; if(k&&!this.s.inv[k]){this.s.equip[slot]=null; fixed++;} });
+    this.s.hp=Math.max(1,Math.min(Number(this.s.hp)||1,this.maxHp?this.maxHp():999999));
+    this.s.mp=Math.max(0,Math.min(Number(this.s.mp)||0,this.maxMp?this.maxMp():999999));
+    this.s.leaf=Math.max(0,Math.min(200,Number(this.s.leaf)||0));
+    this.s.adena=Math.max(0,Math.floor(Number(this.s.adena)||0));
+    this.s.diamond=Math.max(0,Math.floor(Number(this.s.diamond)||0));
+    normalizeSettings(this.s);
+    if(verbose){this.log(`存檔健康檢查完成，修復 ${fixed} 項`,'green'); this.render();}
+    return {fixed};
+  };
+
+  Game.mergeStackables=function(verbose=true){
+    if(!this.s) return 0;
+    const locked=equippedSet(this), seen={}, remove=[]; let merged=0;
+    Object.keys(this.s.inv||{}).forEach(k=>{
+      if(locked.has(k)) return;
+      const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d||!stackTypes.includes(d.type)) return;
+      const sig=it.id+'|'+(it.enchant||0);
+      if(seen[sig]){ this.s.inv[seen[sig]].qty+=it.qty||1; remove.push(k); merged++; }
+      else seen[sig]=k;
+    });
+    remove.forEach(k=>delete this.s.inv[k]);
+    if(verbose){this.log(`背包堆疊整理完成，合併 ${merged} 格`,'green'); this.render();}
+    return merged;
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||this.s.leaf>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{ const it=this.inv(k), d=it&&this.def(it.id); if(!d) return false; if(d.id==='leaf_box'||/葉子/.test(d.name||'')){ this.use(k); used++; return this.s.leaf>=160; } return false; });
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.autoUseLearnableBooks=function(verbose=false){
+    if(!this.s) return 0; let used=0;
+    Object.keys(this.s.inv||{}).slice().forEach(k=>{ const it=this.inv(k), d=it&&this.def(it.id), sk=d&&d.skill&&DB.skills[d.skill]; if(!sk) return; if(sk.classId!==this.s.cls) return; if(this.s.learnedSkills&&this.s.learnedSkills[sk.id]) return; if(this.s.lv<sk.lv) return; try{ this.use(k); used++; }catch(e){} });
+    if(used&&verbose) this.log(`自動學習技能書 ×${used}`,'green');
+    return used;
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{ const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return; if(locked.has(k)) return; if(!equipTypes.includes(d.type)) return; if(rankValue(d.rank)>max) return; if((it.enchant||0)>=5) return; const rw=this.disassembleRewards?this.disassembleRewards(k):[]; if(!rw.length) return; keys.push(k); rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;}); });
+    return {keys,rewards};
+  };
+
+  Game.disassembleByRank=function(maxRank='N'){
+    if(!this.s) return;
+    const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){ alert('沒有符合條件的未穿戴裝備可分解。'); return; }
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`)) return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0));
+    batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[];
+    this.s.disassembleLog.unshift({t:now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))});
+    this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、');
+    this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  Game.autoDisassembleByRank=function(maxRank='N'){
+    const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length) return 0;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0));
+    batch.keys.forEach(k=>this.rem(k,1));
+    this.log(`自動分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下裝備`,'green');
+    return batch.keys.length;
+  };
+
+  Game.runDailyAutomation=function(){
+    if(!this.s) return 0; let jobs=0;
+    if(this.s.settings.autoDailyDungeon && (this.s.daily?.dungeon||0)>0){
+      const d=(DB.dungeons||[]).filter(x=>this.s.lv>=x.lv && this.s.diamond>=x.cost).sort((a,b)=>(b.reward||0)-(a.reward||0))[0];
+      if(d){ try{ this.dungeon(d.id); jobs++; }catch(e){} }
+    }
+    if(this.s.settings.autoDailyBoss && (this.s.daily?.boss||0)>0){
+      const b=(DB.bosses||[]).filter(x=>this.s.lv>=x.lv-15).sort((a,b)=>b.lv-a.lv)[0];
+      if(b){ try{ this.boss(b.id); jobs++; }catch(e){} }
+    }
+    return jobs;
+  };
+
+  const oldTick=Game.tick.bind(Game);
+  Game.tick=function(){
+    oldTick(); if(!this.s) return;
+    const s=this.s, t=now(); s.autoRun=s.autoRun||{};
+    if(s.settings.autoUseLeafBox && t-(s.autoRun.lastLeaf||0)>15000){s.autoRun.lastLeaf=t; this.autoUseLeafBoxes(false);}
+    if(s.settings.autoUseSkillBooks && t-(s.autoRun.lastBook||0)>20000){s.autoRun.lastBook=t; this.autoUseLearnableBooks(false);}
+    if(s.settings.autoDisassemble && t-(s.autoRun.lastDis||0)>25000){s.autoRun.lastDis=t; this.autoDisassembleByRank(s.settings.autoDisRank||'N');}
+    if(s.settings.autoCleanBag && t-(s.autoRun.lastClean||0)>30000){s.autoRun.lastClean=t; this.mergeStackables(false);}
+    if((s.settings.autoDailyDungeon||s.settings.autoDailyBoss) && t-(s.autoRun.lastDaily||0)>60000){s.autoRun.lastDaily=t; this.runDailyAutomation();}
+    if(t-(s.autoRun.lastSave||0)>Math.max(10,Number(s.settings.autoSaveSec||30))*1000){s.autoRun.lastSave=t; this.save(false);}
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='repairSave') return this.repairSaveLite(true);
+    if(a==='mergeBag') return this.mergeStackables(true);
+    if(a==='autoLeafNow'){ const n=this.autoUseLeafBoxes(true); if(!n) alert('目前不需要使用葉子箱，或背包沒有葉子箱。'); this.render(); return; }
+    if(a==='learnBooksNow'){ const n=this.autoUseLearnableBooks(true); if(!n) alert('沒有可自動學習的本職業技能書。'); this.render(); return; }
+    if(a==='dailyAutoNow'){ const n=this.runDailyAutomation(); if(!n) alert('目前沒有可自動執行的副本或世界王。'); this.render(); return; }
+    return oldAction(a,arg,b);
+  };
+
+  function settingRow(label,key,control,desc=''){
+    return `<div class="auto-card"><div class="row"><b>${label}</b>${control}</div>${desc?`<div class="muted mini" style="margin-top:6px">${desc}</div>`:''}</div>`;
+  }
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const s=this.s.settings; const base=oldViewSettings();
+    const auto=`<h3 class="title">V43.1 自動化中心</h3><div class="auto-grid">
+      ${settingRow('自動分解','autoDisassemble',`<input data-set="autoDisassemble" type="checkbox" ${s.autoDisassemble?'checked':''}>`,'每 25 秒分解符合品階的未穿戴裝備；+5 以上自動保留。')}
+      ${settingRow('分解上限','autoDisRank',`<select data-set="autoDisRank"><option value="N" ${s.autoDisRank==='N'?'selected':''}>一般</option><option value="R" ${s.autoDisRank==='R'?'selected':''}>高級以下</option><option value="SR" ${s.autoDisRank==='SR'?'selected':''}>稀有以下</option></select>`,'建議只開一般或高級以下，避免誤拆稀有裝。')}
+      ${settingRow('自動補葉子','autoUseLeafBox',`<input data-set="autoUseLeafBox" type="checkbox" ${s.autoUseLeafBox?'checked':''}>`,'葉子低於 80 時自動使用葉子補充箱。')}
+      ${settingRow('自動學技能書','autoUseSkillBooks',`<input data-set="autoUseSkillBooks" type="checkbox" ${s.autoUseSkillBooks?'checked':''}>`,'符合等級且為本職業、尚未學會的技能書會自動使用。')}
+      ${settingRow('自動整理背包','autoCleanBag',`<input data-set="autoCleanBag" type="checkbox" ${s.autoCleanBag?'checked':''}>`,'自動合併可堆疊道具，降低背包格數與渲染負擔。')}
+      ${settingRow('自動副本','autoDailyDungeon',`<input data-set="autoDailyDungeon" type="checkbox" ${s.autoDailyDungeon?'checked':''}>`,'每 60 秒嘗試執行可進入且收益較高的副本。')}
+      ${settingRow('自動世界王','autoDailyBoss',`<input data-set="autoDailyBoss" type="checkbox" ${s.autoDailyBoss?'checked':''}>`,'每 60 秒嘗試挑戰符合等級的最高世界王。')}
+      ${settingRow('自動存檔秒數','autoSaveSec',`<input data-set="autoSaveSec" type="number" min="10" max="300" value="${safeEsc(s.autoSaveSec||30)}">`,'降低重複寫入 localStorage，預設 30 秒。')}
+    </div><div class="quick-actions"><button data-act="repairSave">存檔健康檢查</button><button data-act="mergeBag">立即整理背包</button><button data-act="autoLeafNow">立即補葉子</button><button data-act="learnBooksNow">立即學技能書</button><button data-act="dailyAutoNow">立即跑每日</button></div>`;
+    return base+auto;
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const s=this.s?.settings||{}, invCount=Object.keys(this.s?.inv||{}).length;
+    const batchN=this.collectDisassembleBatch?this.collectDisassembleBatch(s.autoDisRank||'N').keys.length:0;
+    return oldViewDash()+`<div class="card"><b class="gold">V43.1 自動化與效能優化</b><div class="health-line"><div>背包格數<br><b class="cyan">${invCount}</b></div><div>可自動分解<br><b class="green">${batchN}</b></div><div>自動分解<br><b class="${s.autoDisassemble?'v431-ok':'v431-warn'}">${s.autoDisassemble?'啟用':'關閉'}</b></div><div>自動存檔<br><b class="cyan">${safeEsc(s.autoSaveSec||30)} 秒</b></div></div><div class="quick-actions"><button data-act="mergeBag">整理背包</button><button data-act="repairSave">健康檢查</button><button data-act="disRank" data-arg="N">分解一般</button><button data-act="disRank" data-arg="R">分解高級以下</button></div></div>`;
+  };
+
+  const oldViewAudit=Game.viewAudit.bind(Game);
+  Game.viewAudit=function(){
+    const invalidItems=Object.values(this.s?.inv||{}).filter(it=>!DB.item[it.id]).length;
+    const invalidEquip=Object.values(this.s?.equip||{}).filter(k=>k&&!this.s.inv[k]).length;
+    const stackable=Object.values(this.s?.inv||{}).filter(it=>DB.item[it.id]&&stackTypes.includes(DB.item[it.id].type)).length;
+    return oldViewAudit()+`<div class="card"><b class="gold">V43.1 自動化檢查</b><br><span class="muted">可自動化項目：自動喝水、自動買水、自動技能、自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、自動世界王、自動存檔。<br>目前背包可堆疊格數：${stackable}｜失效道具：${invalidItems}｜失效裝備欄位：${invalidEquip}<br>批次分解已改為一次統計材料後再消耗道具，減少每件分解都重新 render 的效能浪費。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus(); addCss();
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.1｜全內容自動化優化版';
+    document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.1'; const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
+})();
+
 </script>
 
 
@@ -5328,241 +5542,233 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   });
 })();
 
+</script>
 
-/* === V43.1 FULL AUTO OPTIMIZATION LAYER ===
-   目標：檢查全站可自動化流程，集中補上自動分解、背包整理、材料統計、每日流程、存檔修復與批次效能優化。
-   原則：不移除舊補丁，使用最後覆蓋層降低破壞既有存檔與功能的風險。 */
+
+
+<!-- === V43.2 MONSTER/BOSS CODEX BUTTON UNIFICATION === -->
+<script>
 (function(){
-  const VERSION='V43.1';
-  const rankValue=r=>(R&&R[r]?R[r][1]:1);
-  const rankName=r=>(R&&R[r]?R[r][0]:r);
-  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
-  const stackTypes=['potion','scroll','material','box','book'];
-  const safeEsc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const now=()=>Date.now();
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const uniq=a=>[...new Set((a||[]).filter(Boolean))];
+  const bossRe=/王|Boss|BOSS|龍|安塔|巴拉|法利|林德|吉爾|巴風|死亡騎士|巫妖|木乃伊|吸血鬼|巨蟻|不死鳥|惡魔|克特|賽尼斯|首領|君主/i;
+  const itemName=id=>(DB.item&&DB.item[id]&&DB.item[id].name)||id;
 
-  function addCss(){
-    if(document.getElementById('v431-css')) return;
-    const css=document.createElement('style'); css.id='v431-css';
+  function ensureCss(){
+    if(document.getElementById('v432-codex-css')) return;
+    const css=document.createElement('style'); css.id='v432-codex-css';
     css.textContent=`
-      .auto-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:10px}
-      .auto-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px}
-      .auto-card .row{align-items:center}.auto-card input[type=checkbox]{width:18px;height:18px}.auto-card select{width:120px}
-      .quick-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.quick-actions button{padding:6px 9px}
-      .health-line{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-top:8px}
-      .health-line div{background:#07101d;border:1px solid #26364e;border-radius:10px;padding:8px}
-      .v431-ok{color:#86efac}.v431-warn{color:#facc15}.v431-bad{color:#fca5a5}
-    `; document.head.appendChild(css);
+      .codex-v432-card{background:#081120;border:1px solid #26364e;border-radius:13px;padding:12px}
+      .codex-v432-card.ready{border-color:#fca5a5;background:#1a1014}.codex-v432-card.done{border-color:var(--gold);background:#16180d}.codex-v432-card.active{border-color:#60a5fa}.codex-v432-card.locked{opacity:.75;border-style:dashed}
+      .codex-v432-progress{height:22px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:10px 0}
+      .codex-v432-progress span{display:block;height:100%;background:linear-gradient(90deg,#1e3a8a,#22c55e,#facc15)}
+      .codex-v432-progress b{position:absolute;inset:0;text-align:center;line-height:20px;font-size:12px;text-shadow:1px 1px 2px #000}
+      .codex-v432-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:var(--muted);font-size:12px;margin-bottom:8px}
+      .codex-v432-card details{margin-top:8px}.codex-v432-card summary{cursor:pointer;color:var(--gold)}
+      .codex-v432-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    `;
+    document.head.appendChild(css);
   }
 
-  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
-
-  function normalizeSettings(s){
-    s.settings=s.settings||{};
-    Object.assign(s.settings,{
-      autoPotion:s.settings.autoPotion!==false,
-      autoBuy:!!s.settings.autoBuy,
-      autoBoss:!!s.settings.autoBoss,
-      autoSell:!!s.settings.autoSell,
-      autoDisassemble:!!s.settings.autoDisassemble,
-      autoDisRank:s.settings.autoDisRank||'N',
-      autoUseLeafBox:!!s.settings.autoUseLeafBox,
-      autoUseSkillBooks:!!s.settings.autoUseSkillBooks,
-      autoDailyDungeon:!!s.settings.autoDailyDungeon,
-      autoDailyBoss:!!s.settings.autoDailyBoss,
-      autoCleanBag:!!s.settings.autoCleanBag,
-      autoSaveSec:Number(s.settings.autoSaveSec||30)
-    });
-    if(!Array.isArray(s.settings.autoSkills)) s.settings.autoSkills=[];
+  function monsterMaps(name){return (DB.maps||[]).filter(m=>(m.mons||[]).includes(name));}
+  function monsterDrops(name){return uniq(monsterMaps(name).flatMap(m=>(m.drops||[]).concat(m.materialDrops||[]))).slice(0,12);}
+  function isBossName(name){return bossRe.test(String(name||''));}
+  function allMonsterNames(){return uniq((DB.maps||[]).flatMap(m=>m.mons||[])).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));}
+  function allBossNames(){
+    const fromBoss=(DB.bosses||[]).map(b=>b.name);
+    const fromMap=allMonsterNames().filter(isBossName);
+    const fromCodex=Object.keys((Game.s&&Game.s.codexBoss)||{});
+    return uniq(fromBoss.concat(fromMap).concat(fromCodex)).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  }
+  function bossData(name){return (DB.bosses||[]).find(b=>b.name===name)||null;}
+  function bossMaps(name){
+    const b=bossData(name);
+    let maps=(DB.maps||[]).filter(m=>(m.mons||[]).includes(name));
+    if(b){
+      maps=maps.concat((DB.maps||[]).filter(m=>{
+        const label=((m.id||'')+' '+(m.name||'')).toLowerCase();
+        const zone=String(b.zone||'').toLowerCase();
+        return zone && (label.includes(zone)||zone.includes(String(m.id||'').toLowerCase()));
+      }));
+    }
+    if(!maps.length && b){maps=(DB.maps||[]).filter(m=>Math.abs((m.min||0)-(b.lv||0))<=12).slice(0,3);}
+    return uniq(maps.map(m=>m.id)).map(id=>(DB.maps||[]).find(m=>m.id===id)).filter(Boolean);
+  }
+  function bossDrops(name){return uniq(bossMaps(name).flatMap(m=>(m.drops||[]).concat(m.materialDrops||[]))).slice(0,12);}
+  function rankClassByProgress(p){return p>=100?'done':p>=80?'ready':p>0?'active':'locked';}
+  function firstMapIdForMonster(name){const m=monsterMaps(name)[0]; return m&&m.id;}
+  function firstMapIdForBoss(name){const m=bossMaps(name)[0]; return m&&m.id;}
+  function setMapAndRender(game,mapId){
+    if(!mapId) return false;
+    game.ensure&&game.ensure();
+    if(!(DB.maps||[]).some(m=>m.id===mapId)) return false;
+    game.s.map=mapId; game.s.mon=null;
+    if(game.discoverMapV31) game.discoverMapV31(mapId,3,true);
+    game.save&&game.save(false); game.render&&game.render();
+    return true;
   }
 
-  const oldEnsure=Game.ensure.bind(Game);
+  const oldEnsure=Game.ensure;
   Game.ensure=function(){
-    oldEnsure(); if(!this.s) return;
-    this.s.version='core_rebuild_v43_full_auto_optimized';
-    this.s.optimizationLog=this.s.optimizationLog||[];
-    this.s.autoRun=this.s.autoRun||{lastSave:0,lastClean:0,lastDis:0,lastLeaf:0,lastBook:0,lastDaily:0};
-    normalizeSettings(this.s);
-    this.repairSaveLite&&this.repairSaveLite(false);
-  };
-
-  Game.repairSaveLite=function(verbose=true){
-    if(!this.s) return {fixed:0};
-    let fixed=0;
-    this.s.inv=this.s.inv||{}; this.s.equip=this.s.equip||{};
-    Object.keys(this.s.inv).forEach(k=>{ const it=this.s.inv[k]; if(!it||!DB.item[it.id]){delete this.s.inv[k]; fixed++; return;} it.qty=Math.max(1,Math.floor(Number(it.qty)||1)); it.enchant=Math.max(0,Math.floor(Number(it.enchant)||0)); });
-    Object.keys(this.s.equip).forEach(slot=>{ const k=this.s.equip[slot]; if(k&&!this.s.inv[k]){this.s.equip[slot]=null; fixed++;} });
-    this.s.hp=Math.max(1,Math.min(Number(this.s.hp)||1,this.maxHp?this.maxHp():999999));
-    this.s.mp=Math.max(0,Math.min(Number(this.s.mp)||0,this.maxMp?this.maxMp():999999));
-    this.s.leaf=Math.max(0,Math.min(200,Number(this.s.leaf)||0));
-    this.s.adena=Math.max(0,Math.floor(Number(this.s.adena)||0));
-    this.s.diamond=Math.max(0,Math.floor(Number(this.s.diamond)||0));
-    normalizeSettings(this.s);
-    if(verbose){this.log(`存檔健康檢查完成，修復 ${fixed} 項`,'green'); this.render();}
-    return {fixed};
-  };
-
-  Game.mergeStackables=function(verbose=true){
-    if(!this.s) return 0;
-    const locked=equippedSet(this), seen={}, remove=[]; let merged=0;
-    Object.keys(this.s.inv||{}).forEach(k=>{
-      if(locked.has(k)) return;
-      const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d||!stackTypes.includes(d.type)) return;
-      const sig=it.id+'|'+(it.enchant||0);
-      if(seen[sig]){ this.s.inv[seen[sig]].qty+=it.qty||1; remove.push(k); merged++; }
-      else seen[sig]=k;
-    });
-    remove.forEach(k=>delete this.s.inv[k]);
-    if(verbose){this.log(`背包堆疊整理完成，合併 ${merged} 格`,'green'); this.render();}
-    return merged;
-  };
-
-  Game.autoUseLeafBoxes=function(verbose=false){
-    if(!this.s||this.s.leaf>80) return 0;
-    let used=0;
-    Object.keys(this.s.inv||{}).some(k=>{ const it=this.inv(k), d=it&&this.def(it.id); if(!d) return false; if(d.id==='leaf_box'||/葉子/.test(d.name||'')){ this.use(k); used++; return this.s.leaf>=160; } return false; });
-    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
-    return used;
-  };
-
-  Game.autoUseLearnableBooks=function(verbose=false){
-    if(!this.s) return 0; let used=0;
-    Object.keys(this.s.inv||{}).slice().forEach(k=>{ const it=this.inv(k), d=it&&this.def(it.id), sk=d&&d.skill&&DB.skills[d.skill]; if(!sk) return; if(sk.classId!==this.s.cls) return; if(this.s.learnedSkills&&this.s.learnedSkills[sk.id]) return; if(this.s.lv<sk.lv) return; try{ this.use(k); used++; }catch(e){} });
-    if(used&&verbose) this.log(`自動學習技能書 ×${used}`,'green');
-    return used;
-  };
-
-  Game.collectDisassembleBatch=function(maxRank='N'){
-    const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
-    Object.keys(this.s?.inv||{}).forEach(k=>{ const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return; if(locked.has(k)) return; if(!equipTypes.includes(d.type)) return; if(rankValue(d.rank)>max) return; if((it.enchant||0)>=5) return; const rw=this.disassembleRewards?this.disassembleRewards(k):[]; if(!rw.length) return; keys.push(k); rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;}); });
-    return {keys,rewards};
-  };
-
-  Game.disassembleByRank=function(maxRank='N'){
+    oldEnsure.call(this);
     if(!this.s) return;
-    const batch=this.collectDisassembleBatch(maxRank);
-    if(!batch.keys.length){ alert('沒有符合條件的未穿戴裝備可分解。'); return; }
-    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`)) return;
-    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0));
-    batch.keys.forEach(k=>this.rem(k,1));
-    this.s.disassembleLog=this.s.disassembleLog||[];
-    this.s.disassembleLog.unshift({t:now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))});
-    this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
-    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、');
-    this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); this.mergeStackables(false); this.save(false); this.render();
+    this.s.codexMon=this.s.codexMon||{};
+    this.s.codexBoss=this.s.codexBoss||{};
+    this.s.claimed=this.s.claimed||{};
+    this.s.codexFilter=this.s.codexFilter||{monster:'all',boss:'all'};
+    this.s.codexSort=this.s.codexSort||{monster:'progress',boss:'progress'};
   };
 
-  Game.autoDisassembleByRank=function(maxRank='N'){
-    const batch=this.collectDisassembleBatch(maxRank);
-    if(!batch.keys.length) return 0;
-    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0));
-    batch.keys.forEach(k=>this.rem(k,1));
-    this.log(`自動分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下裝備`,'green');
-    return batch.keys.length;
-  };
-
-  Game.runDailyAutomation=function(){
-    if(!this.s) return 0; let jobs=0;
-    if(this.s.settings.autoDailyDungeon && (this.s.daily?.dungeon||0)>0){
-      const d=(DB.dungeons||[]).filter(x=>this.s.lv>=x.lv && this.s.diamond>=x.cost).sort((a,b)=>(b.reward||0)-(a.reward||0))[0];
-      if(d){ try{ this.dungeon(d.id); jobs++; }catch(e){} }
-    }
-    if(this.s.settings.autoDailyBoss && (this.s.daily?.boss||0)>0){
-      const b=(DB.bosses||[]).filter(x=>this.s.lv>=x.lv-15).sort((a,b)=>b.lv-a.lv)[0];
-      if(b){ try{ this.boss(b.id); jobs++; }catch(e){} }
-    }
-    return jobs;
-  };
-
-  const oldTick=Game.tick.bind(Game);
-  Game.tick=function(){
-    oldTick(); if(!this.s) return;
-    const s=this.s, t=now(); s.autoRun=s.autoRun||{};
-    if(s.settings.autoUseLeafBox && t-(s.autoRun.lastLeaf||0)>15000){s.autoRun.lastLeaf=t; this.autoUseLeafBoxes(false);}
-    if(s.settings.autoUseSkillBooks && t-(s.autoRun.lastBook||0)>20000){s.autoRun.lastBook=t; this.autoUseLearnableBooks(false);}
-    if(s.settings.autoDisassemble && t-(s.autoRun.lastDis||0)>25000){s.autoRun.lastDis=t; this.autoDisassembleByRank(s.settings.autoDisRank||'N');}
-    if(s.settings.autoCleanBag && t-(s.autoRun.lastClean||0)>30000){s.autoRun.lastClean=t; this.mergeStackables(false);}
-    if((s.settings.autoDailyDungeon||s.settings.autoDailyBoss) && t-(s.autoRun.lastDaily||0)>60000){s.autoRun.lastDaily=t; this.runDailyAutomation();}
-    if(t-(s.autoRun.lastSave||0)>Math.max(10,Number(s.settings.autoSaveSec||30))*1000){s.autoRun.lastSave=t; this.save(false);}
-  };
-
-  const oldAction=Game.action.bind(Game);
+  const oldAction=Game.action;
   Game.action=function(a,arg,b){
-    if(a==='repairSave') return this.repairSaveLite(true);
-    if(a==='mergeBag') return this.mergeStackables(true);
-    if(a==='autoLeafNow'){ const n=this.autoUseLeafBoxes(true); if(!n) alert('目前不需要使用葉子箱，或背包沒有葉子箱。'); this.render(); return; }
-    if(a==='learnBooksNow'){ const n=this.autoUseLearnableBooks(true); if(!n) alert('沒有可自動學習的本職業技能書。'); this.render(); return; }
-    if(a==='dailyAutoNow'){ const n=this.runDailyAutomation(); if(!n) alert('目前沒有可自動執行的副本或世界王。'); this.render(); return; }
-    return oldAction(a,arg,b);
+    if(a==='monsterBookFilterV432'){this.ensure();this.s.codexFilter.monster=arg||'all';this.renderTab();return;}
+    if(a==='monsterBookSortV432'){this.ensure();this.s.codexSort.monster=arg||'progress';this.renderTab();return;}
+    if(a==='bossBookFilterV432'){this.ensure();this.s.codexFilter.boss=arg||'all';this.renderTab();return;}
+    if(a==='bossBookSortV432'){this.ensure();this.s.codexSort.boss=arg||'progress';this.renderTab();return;}
+    if(a==='goMonsterMapV432'){
+      const ok=setMapAndRender(this,firstMapIdForMonster(arg));
+      if(!ok) alert('找不到此怪物對應地圖。');
+      return;
+    }
+    if(a==='goBossMapV432'){
+      const ok=setMapAndRender(this,firstMapIdForBoss(arg));
+      if(!ok) alert('找不到此 Boss 對應地圖。');
+      return;
+    }
+    if(a==='targetMonsterV432'){
+      this.ensure();
+      const mapId=firstMapIdForMonster(arg);
+      if(mapId) this.s.map=mapId;
+      const map=(DB.maps||[]).find(m=>m.id===this.s.map);
+      const lv=map?Math.max(map.min||1,Math.min(map.max||99,this.s.lv||1)):this.s.lv||1;
+      this.s.mon={name:arg,lv,boss:isBossName(arg),hp:Math.floor((isBossName(arg)?1200:120)+lv*(isBossName(arg)?70:22)),max:0,map:this.s.map};
+      this.s.mon.max=this.s.mon.hp;
+      if(this.discoverMapV31&&mapId) this.discoverMapV31(mapId,3,true);
+      this.log('怪物圖鑑指定目標：'+arg,'green');
+      this.render();return;
+    }
+    if(a==='fightBossBookV432'){
+      this.ensure();
+      const bd=bossData(arg);
+      if(bd&&this.boss){this.boss(bd.id);return;}
+      const mapId=firstMapIdForBoss(arg);
+      if(mapId) this.s.map=mapId;
+      const lv=(bd&&bd.lv)||this.s.lv||1;
+      this.s.mon={name:arg,lv,boss:true,hp:(bd&&bd.hp)||Math.floor(1200+lv*70),max:(bd&&bd.hp)||Math.floor(1200+lv*70),map:this.s.map};
+      this.log('BOSS圖鑑指定目標：'+arg,'green');
+      this.render();return;
+    }
+    return oldAction.call(this,a,arg,b);
   };
 
-  function settingRow(label,key,control,desc=''){
-    return `<div class="auto-card"><div class="row"><b>${label}</b>${control}</div>${desc?`<div class="muted mini" style="margin-top:6px">${desc}</div>`:''}</div>`;
-  }
-
-  const oldViewSettings=Game.viewSettings.bind(Game);
-  Game.viewSettings=function(){
-    const s=this.s.settings; const base=oldViewSettings();
-    const auto=`<h3 class="title">V43.1 自動化中心</h3><div class="auto-grid">
-      ${settingRow('自動分解','autoDisassemble',`<input data-set="autoDisassemble" type="checkbox" ${s.autoDisassemble?'checked':''}>`,'每 25 秒分解符合品階的未穿戴裝備；+5 以上自動保留。')}
-      ${settingRow('分解上限','autoDisRank',`<select data-set="autoDisRank"><option value="N" ${s.autoDisRank==='N'?'selected':''}>一般</option><option value="R" ${s.autoDisRank==='R'?'selected':''}>高級以下</option><option value="SR" ${s.autoDisRank==='SR'?'selected':''}>稀有以下</option></select>`,'建議只開一般或高級以下，避免誤拆稀有裝。')}
-      ${settingRow('自動補葉子','autoUseLeafBox',`<input data-set="autoUseLeafBox" type="checkbox" ${s.autoUseLeafBox?'checked':''}>`,'葉子低於 80 時自動使用葉子補充箱。')}
-      ${settingRow('自動學技能書','autoUseSkillBooks',`<input data-set="autoUseSkillBooks" type="checkbox" ${s.autoUseSkillBooks?'checked':''}>`,'符合等級且為本職業、尚未學會的技能書會自動使用。')}
-      ${settingRow('自動整理背包','autoCleanBag',`<input data-set="autoCleanBag" type="checkbox" ${s.autoCleanBag?'checked':''}>`,'自動合併可堆疊道具，降低背包格數與渲染負擔。')}
-      ${settingRow('自動副本','autoDailyDungeon',`<input data-set="autoDailyDungeon" type="checkbox" ${s.autoDailyDungeon?'checked':''}>`,'每 60 秒嘗試執行可進入且收益較高的副本。')}
-      ${settingRow('自動世界王','autoDailyBoss',`<input data-set="autoDailyBoss" type="checkbox" ${s.autoDailyBoss?'checked':''}>`,'每 60 秒嘗試挑戰符合等級的最高世界王。')}
-      ${settingRow('自動存檔秒數','autoSaveSec',`<input data-set="autoSaveSec" type="number" min="10" max="300" value="${safeEsc(s.autoSaveSec||30)}">`,'降低重複寫入 localStorage，預設 30 秒。')}
-    </div><div class="quick-actions"><button data-act="repairSave">存檔健康檢查</button><button data-act="mergeBag">立即整理背包</button><button data-act="autoLeafNow">立即補葉子</button><button data-act="learnBooksNow">立即學技能書</button><button data-act="dailyAutoNow">立即跑每日</button></div>`;
-    return base+auto;
+  Game.viewMonsterBookV23=function(){
+    this.ensure(); ensureCss();
+    const filter=this.s.codexFilter?.monster||'all', sort=this.s.codexSort?.monster||'progress';
+    const filters=[['all','全部'],['current','目前地圖'],['unseen','未登錄'],['ready','可領獎'],['claimed','已完成']];
+    const sorts=[['progress','進度'],['kills','擊殺'],['level','地圖等級'],['name','名稱']];
+    const all=allMonsterNames();
+    let list=all.slice().filter(n=>{
+      const k=this.s.codexMon?.[n]||0, ready=k>=100&&!this.s.claimed?.['mon_'+n], claimed=!!this.s.claimed?.['mon_'+n];
+      if(filter==='current') return (this.map().mons||[]).includes(n);
+      if(filter==='unseen') return k<=0;
+      if(filter==='ready') return ready;
+      if(filter==='claimed') return claimed;
+      return true;
+    });
+    list.sort((a,b)=>{
+      const ka=this.s.codexMon?.[a]||0, kb=this.s.codexMon?.[b]||0;
+      if(sort==='kills') return kb-ka;
+      if(sort==='level') return ((monsterMaps(a)[0]?.min)||999)-((monsterMaps(b)[0]?.min)||999);
+      if(sort==='name') return String(a).localeCompare(String(b),'zh-Hant');
+      return Math.min(100,kb)-Math.min(100,ka);
+    });
+    const done=all.filter(n=>(this.s.codexMon?.[n]||0)>=100).length;
+    const ready=all.filter(n=>(this.s.codexMon?.[n]||0)>=100&&!this.s.claimed?.['mon_'+n]).length;
+    const totalKills=Object.values(this.s.codexMon||{}).reduce((a,b)=>a+(Number(b)||0),0);
+    const current=(this.map().mons||[]).length;
+    const rows=list.map(n=>{
+      const k=this.s.codexMon?.[n]||0, pct=Math.min(100,Math.floor(k/100*100)), claimed=!!this.s.claimed?.['mon_'+n], can=k>=100&&!claimed;
+      const maps=monsterMaps(n), first=maps[0];
+      const drops=monsterDrops(n).map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+      const mapPills=maps.slice(0,8).map(m=>`<span class="pill ${m.id===this.s.map?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>';
+      return `<div class="codex-v432-card ${rankClassByProgress(pct)}">
+        <div class="row"><div><b class="gold">${esc(n)}</b> ${claimed?'<span class="pill green">已完成</span>':can?'<span class="pill red">可領獎</span>':k>0?'<span class="pill blue">已登錄</span>':'<span class="pill muted">未登錄</span>'}<br><span class="muted">擊殺 ${num(k)}/100｜主要地圖：${first?esc(first.name):'無'}</span></div><div class="codex-v432-actions"><button data-act="goMonsterMapV432" data-arg="${esc(n)}" ${first?'':'disabled'}>前往</button><button data-act="targetMonsterV432" data-arg="${esc(n)}" ${first?'':'disabled'}>指定目標</button><button data-act="claimMonBook" data-arg="${esc(n)}" ${can?'':'disabled'}>領取</button></div></div>
+        <div class="codex-v432-progress"><span style="width:${pct}%"></span><b>${pct}%</b></div>
+        <div class="codex-v432-sub"><span>擊殺 ${num(k)}</span><span>出沒地圖 ${maps.length}</span><span>掉落 ${monsterDrops(n).length}</span></div>
+        <details><summary>地圖 / 掉落</summary><div class="drop-box"><b>出沒地圖</b>${mapPills}</div><div class="drop-box"><b>掉落</b>${drops}</div></details>
+      </div>`;
+    }).join('');
+    return this.hero('怪物圖鑑 V43.2','操作按鈕已統一為地圖圖鑑模式：篩選、排序、前往、指定目標、領取。')+
+      this.statCards([['怪物種類',all.length,'gold'],['目前地圖怪物',current,'cyan'],['可領獎',ready,'red'],['已完成',done+'/'+all.length,'green'],['總擊殺',num(totalKills),'blue']])+
+      `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="monsterBookFilterV432" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="monsterBookSortV432" data-arg="${id}">排序：${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${rows||'<p class="muted">沒有符合條件的怪物</p>'}</div>`;
   };
 
-  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewBossBookV23=function(){
+    this.ensure(); ensureCss();
+    const filter=this.s.codexFilter?.boss||'all', sort=this.s.codexSort?.boss||'progress';
+    const filters=[['all','全部'],['current','目前地圖'],['unseen','未討伐'],['ready','可領獎'],['claimed','已完成']];
+    const sorts=[['progress','進度'],['kills','討伐'],['level','等級'],['name','名稱']];
+    const all=allBossNames();
+    let list=all.slice().filter(n=>{
+      const k=this.s.codexBoss?.[n]||0, ready=k>=3&&!this.s.claimed?.['boss_'+n], claimed=!!this.s.claimed?.['boss_'+n];
+      if(filter==='current') return (this.map().mons||[]).includes(n)||bossMaps(n).some(m=>m.id===this.s.map);
+      if(filter==='unseen') return k<=0;
+      if(filter==='ready') return ready;
+      if(filter==='claimed') return claimed;
+      return true;
+    });
+    list.sort((a,b)=>{
+      const ka=this.s.codexBoss?.[a]||0, kb=this.s.codexBoss?.[b]||0;
+      if(sort==='kills') return kb-ka;
+      if(sort==='level') return ((bossData(a)?.lv)||999)-((bossData(b)?.lv)||999);
+      if(sort==='name') return String(a).localeCompare(String(b),'zh-Hant');
+      return Math.min(3,kb)-Math.min(3,ka);
+    });
+    const done=all.filter(n=>(this.s.codexBoss?.[n]||0)>=3).length;
+    const ready=all.filter(n=>(this.s.codexBoss?.[n]||0)>=3&&!this.s.claimed?.['boss_'+n]).length;
+    const totalKills=Object.values(this.s.codexBoss||{}).reduce((a,b)=>a+(Number(b)||0),0);
+    const rows=list.map(n=>{
+      const k=this.s.codexBoss?.[n]||0, pct=Math.min(100,Math.floor(k/3*100)), claimed=!!this.s.claimed?.['boss_'+n], can=k>=3&&!claimed;
+      const bd=bossData(n), maps=bossMaps(n), first=maps[0];
+      const drops=bossDrops(n).map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+      const mapPills=maps.slice(0,8).map(m=>`<span class="pill ${m.id===this.s.map?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>';
+      return `<div class="codex-v432-card ${rankClassByProgress(pct)} boss-card">
+        <div class="row"><div><b class="red">${esc(n)}</b> ${claimed?'<span class="pill green">已完成</span>':can?'<span class="pill red">可領獎</span>':k>0?'<span class="pill blue">已討伐</span>':'<span class="pill muted">未討伐</span>'}<br><span class="muted">討伐 ${num(k)}/3｜${bd?'Boss Lv.'+bd.lv+'｜HP '+num(bd.hp):'野外 / 地圖 Boss'}</span></div><div class="codex-v432-actions"><button data-act="goBossMapV432" data-arg="${esc(n)}" ${first?'':'disabled'}>前往</button><button data-act="fightBossBookV432" data-arg="${esc(n)}">討伐/指定</button><button data-act="claimBossBook" data-arg="${esc(n)}" ${can?'':'disabled'}>領取</button></div></div>
+        <div class="codex-v432-progress"><span style="width:${pct}%"></span><b>${pct}%</b></div>
+        <div class="codex-v432-sub"><span>討伐 ${num(k)}</span><span>關聯地圖 ${maps.length}</span><span>掉落 ${bossDrops(n).length}</span></div>
+        <details><summary>地圖 / 掉落</summary><div class="drop-box"><b>關聯地圖</b>${mapPills}</div><div class="drop-box"><b>掉落</b>${drops}</div></details>
+      </div>`;
+    }).join('');
+    return this.hero('BOSS圖鑑 V43.2','操作按鈕已統一為地圖圖鑑模式：篩選、排序、前往、討伐/指定、領取。')+
+      this.statCards([['Boss種類',all.length,'red'],['可領獎',ready,'gold'],['已完成',done+'/'+all.length,'green'],['討伐紀錄',num(totalKills),'blue'],['目前地圖',esc(this.map().name),'cyan']])+
+      `<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="bossBookFilterV432" data-arg="${id}">${n}</button>`).join('')}</div>`+
+      `<div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="bossBookSortV432" data-arg="${id}">排序：${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${rows||'<p class="muted">沒有符合條件的 Boss</p>'}</div>`;
+  };
+
+  const oldDash=Game.viewDash;
   Game.viewDash=function(){
-    const s=this.s?.settings||{}, invCount=Object.keys(this.s?.inv||{}).length;
-    const batchN=this.collectDisassembleBatch?this.collectDisassembleBatch(s.autoDisRank||'N').keys.length:0;
-    return oldViewDash()+`<div class="card"><b class="gold">V43.1 自動化與效能優化</b><div class="health-line"><div>背包格數<br><b class="cyan">${invCount}</b></div><div>可自動分解<br><b class="green">${batchN}</b></div><div>自動分解<br><b class="${s.autoDisassemble?'v431-ok':'v431-warn'}">${s.autoDisassemble?'啟用':'關閉'}</b></div><div>自動存檔<br><b class="cyan">${safeEsc(s.autoSaveSec||30)} 秒</b></div></div><div class="quick-actions"><button data-act="mergeBag">整理背包</button><button data-act="repairSave">健康檢查</button><button data-act="disRank" data-arg="N">分解一般</button><button data-act="disRank" data-arg="R">分解高級以下</button></div></div>`;
+    const base=oldDash.call(this);
+    return base+`<div class="card"><b class="gold">V43.2 圖鑑按鈕統一</b><br><span class="muted">怪物圖鑑與 BOSS 圖鑑已改成與地圖圖鑑一致的篩選、排序、前往、指定目標/討伐與領取按鈕模式。</span></div>`;
   };
 
-  const oldViewAudit=Game.viewAudit.bind(Game);
+  const oldAudit=Game.viewAudit;
   Game.viewAudit=function(){
-    const invalidItems=Object.values(this.s?.inv||{}).filter(it=>!DB.item[it.id]).length;
-    const invalidEquip=Object.values(this.s?.equip||{}).filter(k=>k&&!this.s.inv[k]).length;
-    const stackable=Object.values(this.s?.inv||{}).filter(it=>DB.item[it.id]&&stackTypes.includes(DB.item[it.id].type)).length;
-    return oldViewAudit()+`<div class="card"><b class="gold">V43.1 自動化檢查</b><br><span class="muted">可自動化項目：自動喝水、自動買水、自動技能、自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、自動世界王、自動存檔。<br>目前背包可堆疊格數：${stackable}｜失效道具：${invalidItems}｜失效裝備欄位：${invalidEquip}<br>批次分解已改為一次統計材料後再消耗道具，減少每件分解都重新 render 的效能浪費。</span></div>`;
+    const mons=allMonsterNames().length, bosses=allBossNames().length;
+    return oldAudit.call(this)+`<div class="card"><b class="gold">V43.2 圖鑑功能檢查</b><br><span class="muted">怪物圖鑑：${mons} 筆｜BOSS圖鑑：${bosses} 筆｜已統一按鈕：篩選、排序、前往、指定目標/討伐、領取。</span></div>`;
   };
 
-  const oldRenderStatus=Game.renderStatus.bind(Game);
+  const oldRenderStatus=Game.renderStatus;
   Game.renderStatus=function(){
-    oldRenderStatus(); addCss();
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.1｜全內容自動化優化版';
-    document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版';
+    oldRenderStatus.call(this); ensureCss();
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';
+    document.title='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.1'; const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
-})();
-
-
-/* === V43.1 SELECT SETTING FIX === */
-(function(){
-  function installV431SelectFix(){
-    const content=document.getElementById('content');
-    if(!content || content.dataset.v431SelectFix) return;
-    content.dataset.v431SelectFix='1';
-    content.addEventListener('change',function(e){
-      const x=e.target;
-      if(!x || x.dataset.set!=='autoDisRank') return;
-      e.stopImmediatePropagation();
-      if(window.G && G.s){
-        G.s.settings=G.s.settings||{};
-        G.s.settings.autoDisRank=x.value||'N';
-        G.save&&G.save(false);
-        G.render&&G.render();
-      }
-    },true);
-  }
-  window.addEventListener('DOMContentLoaded',installV431SelectFix);
-  const oldEnter=Game.enter.bind(Game);
-  Game.enter=function(){oldEnter(); installV431SelectFix();};
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.2'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';});
 })();
 </script>
 
