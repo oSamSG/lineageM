@@ -5764,11 +5764,133 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldRenderStatus=Game.renderStatus;
   Game.renderStatus=function(){
     oldRenderStatus.call(this); ensureCss();
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';
-    document.title='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';
+    document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版';
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.2'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.2｜圖鑑按鈕統一版';});
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.3'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
+})();
+
+
+/* === V43.3 COLLECTION CODEX BUTTON OPTIMIZATION ===
+   將收藏頁面統一成地圖/怪物/BOSS圖鑑同樣的操作按鈕模式：篩選、排序、查看需求、前往取得、登錄/領取。
+   兼容舊版 DB.codex 與後續自動化功能。 */
+(function(){
+  if(!window.Game || !window.DB) return;
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const rankVal=r=>(window.R&&R[r]?R[r][1]:1);
+  function ensureCss(){
+    if(document.getElementById('v433CollectionCodexCss')) return;
+    const css=document.createElement('style'); css.id='v433CollectionCodexCss'; css.textContent=`
+      .codex-v433-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 10px}
+      .codex-v433-toolbar button.on,.codex-v433-actions button.main{border-color:var(--gold);color:var(--gold);background:#2b2512}
+      .collection-card{position:relative;overflow:hidden}.collection-card.done{border-color:#22c55e}.collection-card.ready{border-color:#facc15}.collection-card.locked{opacity:.92}
+      .codex-v433-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.codex-v433-actions button{padding:6px 9px;font-size:12px}
+      .codex-v433-progress{height:18px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:8px 0}.codex-v433-progress span{display:block;height:100%;background:linear-gradient(90deg,#854d0e,#facc15)}.codex-v433-progress b{position:absolute;inset:0;text-align:center;line-height:16px;font-size:12px;text-shadow:1px 1px 2px #000}
+      .codex-v433-sub{display:flex;gap:6px;flex-wrap:wrap}.codex-v433-sub span,.need-pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}
+      .need-pill.ok{border-color:#22c55e;color:#86efac}.need-pill.miss{border-color:#ef4444;color:#fca5a5}.need-pill.cardNeed{border-color:#60a5fa}.need-pill.itemNeed{border-color:#facc15}
+      .codex-v433-detail{margin-top:8px}.codex-v433-detail summary{cursor:pointer;color:var(--gold)}
+      .codex-v433-empty{padding:16px;text-align:center;color:var(--muted)}
+    `; document.head.appendChild(css);
+  }
+  function state(){ const s=Game.s; s.codex=s.codex||{}; s.collectionBookV433=s.collectionBookV433||{filter:'all',sort:'progress'}; return s.collectionBookV433; }
+  function getItemCount(id){ const s=Game.s; return Object.values(s.inv||{}).filter(x=>x&&x.id===id).reduce((a,x)=>a+(Number(x.qty)||1),0); }
+  function hasItem(id){ return getItemCount(id)>0; }
+  function hasCard(id){ return ((Game.s.cards||{})[id]||0)>0; }
+  function needInfo(id){
+    const item=DB.item&&DB.item[id], card=DB.cards&&DB.cards[id];
+    if(card){ return {id,type:'card',name:card.name,rank:card.rank,ok:hasCard(id),count:(Game.s.cards||{})[id]||0,where:findCardWhere(card)}; }
+    if(item){ return {id,type:'item',name:item.name,rank:item.rank,ok:hasItem(id),count:getItemCount(id),where:findItemWhere(id,item)}; }
+    return {id,type:'unknown',name:id,rank:'N',ok:false,count:0,where:[]};
+  }
+  function findItemWhere(id,item){
+    const arr=[];
+    (DB.maps||[]).forEach(m=>{ if((m.drops||[]).includes(id)) arr.push({type:'map',id:m.id,name:m.name}); });
+    if(item.type==='book'&&item.skill){ arr.push({type:'skill',id:item.skill,name:'技能頁'}); }
+    if(['weapon','armor','helmet','tshirt','cloak','gloves','boots','ring','earring','amulet','belt','rune','seal','relic'].includes(item.type)) arr.push({type:'craft',id:id,name:'製作'});
+    if(!arr.length) arr.push({type:'market',id:id,name:'交易所/商城'});
+    return arr;
+  }
+  function findCardWhere(card){
+    const arr=[];
+    arr.push({type:card.kind==='doll'?'drawD':'drawT',id:card.kind,name:card.kind==='doll'?'娃娃抽卡':'變身抽卡'});
+    arr.push({type:'combine',id:card.rank,name:'卡片合成'});
+    return arr;
+  }
+  function codexRows(){
+    return (DB.codex||[]).map((c,i)=>{
+      const needs=(c[1]||[]).map(needInfo); const ok=needs.filter(n=>n.ok).length; const total=Math.max(1,needs.length); const pct=Math.floor(ok/total*100);
+      const done=!!(Game.s.codex||{})[i]; const ready=pct>=100&&!done;
+      const stat=Object.entries(c[2]||{}).map(([k,v])=>`${k}+${v}`).join('、')||'-';
+      const rarity=Math.max(...needs.map(n=>rankVal(n.rank||'N')),1);
+      return {i,name:c[0]||('收藏 '+(i+1)),needs,ok,total,pct,done,ready,stat,rarity};
+    });
+  }
+  function firstMissing(row){ return (row.needs||[]).find(n=>!n.ok)||(row.needs||[])[0]; }
+  function gotoNeed(need){
+    if(!need) return;
+    const where=(need.where||[])[0];
+    if(!where) return;
+    if(where.type==='map'){ Game.s.map=where.id; Game.s.mon=null; Game.tab='hunt'; Game.log('已前往取得收藏需求：'+need.name+'｜'+where.name,'green'); }
+    else if(where.type==='drawT'||where.type==='drawD'){ Game.tab='draw'; Game.log('已切換到抽卡頁：'+need.name,'green'); }
+    else if(where.type==='combine'){ Game.tab='combine'; Game.log('已切換到合成頁：'+need.name,'green'); }
+    else if(where.type==='craft'){ Game.tab='craft'; Game.log('已切換到製作頁：'+need.name,'green'); }
+    else if(where.type==='skill'){ Game.tab='skills'; Game.log('已切換到技能頁：'+need.name,'green'); }
+    else { Game.tab='market'; Game.log('已切換到交易所/商城查找：'+need.name,'green'); }
+    Game.render();
+  }
+  function claimCollection(i){
+    const row=codexRows().find(x=>x.i===Number(i)); if(!row) return;
+    if(row.done){ alert('此收藏已完成'); return; }
+    if(!row.ready){ alert('收藏條件不足'); return; }
+    if(typeof Game.checkCodex==='function') Game.checkCodex(row.i); else { Game.s.codex[row.i]=true; Game.log('完成收藏：'+row.name,'green'); Game.render(); }
+  }
+  function claimAllReady(){ let n=0; codexRows().forEach(r=>{ if(r.ready){ Game.s.codex[r.i]=true; n++; }}); Game.log(n?'已批次完成收藏 '+n+' 筆':'目前沒有可完成收藏',n?'green':''); Game.render(); }
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='collectionFilterV433'){ state().filter=arg||'all'; this.render(); return; }
+    if(a==='collectionSortV433'){ state().sort=arg||'progress'; this.render(); return; }
+    if(a==='collectionGotoV433'){ const r=codexRows().find(x=>x.i===Number(arg)); gotoNeed(firstMissing(r)); return; }
+    if(a==='collectionClaimV433'){ claimCollection(arg); return; }
+    if(a==='collectionClaimAllV433'){ claimAllReady(); return; }
+    if(a==='collectionInspectV433'){ const r=codexRows().find(x=>x.i===Number(arg)); if(r) Game.log('查看收藏需求：'+r.name+'｜'+r.ok+'/'+r.total,'gold'); this.render(); return; }
+    return oldAction(a,arg,b);
+  };
+  Game.viewCodex=function(){
+    ensureCss(); const st=state(); let rows=codexRows();
+    const filter=st.filter||'all', sort=st.sort||'progress';
+    if(filter==='ready') rows=rows.filter(r=>r.ready); else if(filter==='done') rows=rows.filter(r=>r.done); else if(filter==='missing') rows=rows.filter(r=>!r.done&&!r.ready); else if(filter==='card') rows=rows.filter(r=>r.needs.some(n=>n.type==='card')); else if(filter==='item') rows=rows.filter(r=>r.needs.some(n=>n.type==='item'));
+    rows.sort((a,b)=> sort==='name'?a.name.localeCompare(b.name,'zh-Hant') : sort==='rarity'?b.rarity-a.rarity : sort==='ready'?(Number(b.ready)-Number(a.ready)||b.pct-a.pct) : sort==='done'?(Number(a.done)-Number(b.done)||b.pct-a.pct) : b.pct-a.pct || b.rarity-a.rarity);
+    const all=codexRows(), ready=all.filter(r=>r.ready).length, done=all.filter(r=>r.done).length, avg=Math.floor(all.reduce((a,r)=>a+r.pct,0)/Math.max(1,all.length));
+    const filters=[['all','全部'],['ready','可領取'],['missing','未完成'],['done','已完成'],['item','裝備/道具'],['card','變身/娃娃']];
+    const sorts=[['progress','進度'],['ready','可領優先'],['rarity','高階優先'],['name','名稱'],['done','未完成優先']];
+    const cards=rows.map(r=>{
+      const cls=r.done?'done':r.ready?'ready':'locked';
+      const needs=r.needs.map(n=>`<span class="need-pill ${n.ok?'ok':'miss'} ${n.type==='card'?'cardNeed':'itemNeed'}">${n.ok?'✓':'×'} ${esc(n.name)}${n.count?` ×${num(n.count)}`:''}</span>`).join('');
+      const where=(firstMissing(r)?.where||[]).map(w=>`<span class="pill">${esc(w.name)}</span>`).join('')||'<span class="muted">無建議來源</span>';
+      return `<div class="card collection-card ${cls}">
+        <div class="row"><div><b class="gold">${esc(r.name)}</b> ${r.done?'<span class="pill green">已完成</span>':r.ready?'<span class="pill red">可領取</span>':'<span class="pill muted">未完成</span>'}<br><span class="muted">需求 ${r.ok}/${r.total}｜加成：${esc(r.stat)}</span></div>
+        <div class="codex-v433-actions"><button data-act="collectionInspectV433" data-arg="${r.i}">查看需求</button><button data-act="collectionGotoV433" data-arg="${r.i}" ${r.done?'disabled':''}>前往取得</button><button class="main" data-act="collectionClaimV433" data-arg="${r.i}" ${r.ready?'':'disabled'}>登錄/領取</button></div></div>
+        <div class="codex-v433-progress"><span style="width:${r.pct}%"></span><b>${r.pct}%</b></div>
+        <div class="codex-v433-sub"><span>缺少 ${Math.max(0,r.total-r.ok)}</span><span>需求 ${r.total}</span><span>稀有度 ${r.rarity}</span></div>
+        <details class="codex-v433-detail"><summary>需求與來源</summary><div style="margin-top:6px">${needs}</div><div class="drop-box"><b>建議取得</b>${where}</div></details>
+      </div>`;
+    }).join('');
+    const hero = typeof this.hero==='function' ? this.hero('收藏系統 V43.3','收藏頁面已改成與地圖 / 怪物 / BOSS 圖鑑一致的按鈕模式：篩選、排序、查看需求、前往取得、登錄/領取。') : '<h3 class="title">收藏系統 V43.3</h3>';
+    const stats = typeof this.statCards==='function' ? this.statCards([['收藏總數',all.length,'gold'],['可領取',ready,'red'],['已完成',done+'/'+all.length,'green'],['平均進度',avg+'%','blue']]) : '';
+    return hero+stats+
+      `<div class="codex-v433-toolbar">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="collectionFilterV433" data-arg="${id}">${n}</button>`).join('')}<button class="tab gold" data-act="collectionClaimAllV433">一鍵領取可完成</button></div>`+
+      `<div class="codex-v433-toolbar">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="collectionSortV433" data-arg="${id}">排序：${n}</button>`).join('')}</div>`+
+      `<div class="page-list">${cards||'<div class="codex-v433-empty">沒有符合條件的收藏</div>'}</div>`;
+  };
+  const oldDash=Game.viewDash;
+  Game.viewDash=function(){ return oldDash.call(this)+`<div class="card"><b class="gold">V43.3 收藏按鈕優化</b><br><span class="muted">收藏頁面已新增篩選、排序、查看需求、前往取得、登錄/領取與一鍵領取可完成。</span></div>`; };
+  const oldAudit=Game.viewAudit;
+  Game.viewAudit=function(){ return oldAudit.call(this)+`<div class="card"><b class="gold">V43.3 收藏功能檢查</b><br><span class="muted">收藏總數：${(DB.codex||[]).length}｜按鈕模式已與地圖、怪物、BOSS圖鑑統一。</span></div>`; };
+  const oldRenderStatus=Game.renderStatus;
+  Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; };
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.3'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
 })();
 </script>
 
