@@ -13,7 +13,7 @@
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
 'use strict';
-const APP_VERSION='V44.1';
+const APP_VERSION='V44.2';
 const APP_STORAGE_KEY='lm_core_rebuild_current';
 const APP_TITLE='天堂M Core Rebuild';
 const APP_FULL_TITLE=()=>`${APP_TITLE} ${APP_VERSION}`;
@@ -7644,7 +7644,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
 <!-- === V44.1 CLEANUP: REMOVE VERSION EXPLANATION CARDS === -->
 (function(){
-  const CLEAN_VERSION='V44.1';
+  const CLEAN_VERSION='V44.2';
   const title=()=>`${APP_TITLE} ${CLEAN_VERSION}`;
   const setTitles=()=>{
     document.title=title();
@@ -7695,5 +7695,221 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   window.addEventListener('DOMContentLoaded',setTitles);
 })();
 
+
+
+/* === V44.2 TRUE MULTI-MONSTER / SURROUND / AOE CORE === */
+(function(){
+  const V='V44.2';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const finite=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
+  const bossWords=/巴風特|死亡騎士|巫妖|木乃伊王|安塔瑞斯|法利昂|巴拉卡斯|林德拜爾|吉爾塔斯|巨大飛龍|Boss|BOSS|首領|王$/;
+  const isBoss=n=>bossWords.test(String(n||''));
+  const packRule=id=>({talking:[2,3],gludin:[3,4],giran:[3,5],dragon:[4,6],toi:[4,6],lastabad:[5,7],antharas:[6,8],valakas:[6,8]})[id]||[2,5];
+  const allBossNames=()=>Array.from(new Set([...(DB.bosses||[]).map(b=>b.name),...(DB.maps||[]).flatMap(m=>(m.mons||[]).filter(isBoss))]));
+  const normalMonsterNames=()=>Array.from(new Set((DB.maps||[]).flatMap(m=>(m.mons||[]).filter(n=>!isBoss(n))))).sort((a,b)=>a.localeCompare(b,'zh-Hant'));
+  const alive=G=>((G.s&&Array.isArray(G.s.mobs))?G.s.mobs:[]).filter(m=>m&&m.hp>0);
+  const mainTitle=()=>`${APP_TITLE} ${V}`;
+  const setTitle=()=>{document.title=mainTitle(); const h=document.querySelector('#start h1'); if(h)h.textContent=mainTitle(); const t=document.querySelector('#app .top .title'); if(t)t.textContent=mainTitle();};
+  const oldEnsure=Game.ensure&&Game.ensure.bind(Game);
+  Game.ensure=function(){
+    if(oldEnsure) oldEnsure();
+    if(!this.s) return;
+    this.s.version=V;
+    if(!Array.isArray(this.s.mobs)) this.s.mobs=[];
+    if(this.s.mon && !this.s.mobs.length) this.s.mobs=[this.s.mon];
+    this.s.codexMon=this.s.codexMon||{};
+    this.s.codexBoss=this.s.codexBoss||{};
+    this.s.mapMonsterSeen=this.s.mapMonsterSeen||{};
+    this.s.mapBossSeen=this.s.mapBossSeen||{};
+    this.s.settings=this.s.settings||{};
+    if(!Array.isArray(this.s.settings.autoSkills)) this.s.settings.autoSkills=[];
+    this.s.leaf=Math.max(0,finite(this.s.leaf,110));
+  };
+  const oldBind=Game.bind&&Game.bind.bind(Game);
+  Game.bind=function(){
+    if(oldBind) oldBind();
+    const mapSel=this.$('mapSelect');
+    if(mapSel){
+      mapSel.onchange=e=>{this.s.map=e.target.value; this.s.mon=null; this.s.mobs=[]; this.render();};
+    }
+  };
+  Game.spawn=function(){
+    const map=this.map();
+    const pool=(map.mons||[]).filter(n=>!isBoss(n));
+    const names=pool.length?pool:(map.mons||[]);
+    const [min,max]=packRule(map.id);
+    const count=this.rand(min,max);
+    this.s.mobs=[];
+    for(let i=0;i<count;i++){
+      const name=names[this.rand(0,names.length-1)]||'怪物';
+      const lv=this.rand(map.min,map.max);
+      const elite=Math.random()<0.08;
+      const hp=Math.floor((elite?190:115)+lv*(elite?32:21));
+      this.s.mobs.push({uid:Date.now().toString(36)+'_'+i+'_'+Math.random().toString(36).slice(2,6),name,lv,boss:false,elite,hp,max:hp});
+      this.s.mapMonsterSeen[map.id]=this.s.mapMonsterSeen[map.id]||{};
+      this.s.mapMonsterSeen[map.id][name]=true;
+    }
+    this.s.mon=this.s.mobs[0]||null;
+    this.blog(`<span class="orange">遭遇 ${this.s.mobs.length} 隻怪物圍攻</span>：${this.s.mobs.map(m=>esc(m.name)).join('、')}`);
+  };
+  const isAOE=sk=>{
+    const n=String(sk?.name||'');
+    return /流星雨|究極光裂術|月光箭雨|戰斧旋風|雷霆一擊|暴雷領域|閃電鏈|天雷落下|龍炎爆發|岩漿噴吐|死神降臨|靈魂爆裂|聖槍風暴|突襲指揮|戰場號令/.test(n) || sk?.aoe===true;
+  };
+  Game.castAuto=function(){
+    const mobs=alive(this);
+    if(!mobs.length) return false;
+    const arr=this.s.settings.autoSkills||[];
+    for(const id of arr){
+      const sk=DB.skills[id];
+      if(!sk||!this.s.learnedSkills[id]||sk.type==='passive'||this.s.mp<(sk.mp||0)) continue;
+      const lv=this.s.skillLevels[id]||1, aw=this.s.skillAwake[id]?1.3:1;
+      this.s.mp-=sk.mp;
+      if(sk.type==='active'){
+        const base=Math.floor((sk.power+lv*22+this.total().int*3)*aw);
+        if(isAOE(sk)){
+          mobs.forEach((m,i)=>{m.hp-=Math.max(1,Math.floor(base*(1-i*0.06)));});
+          this.blog(`<span class="cyan">範圍技能 ${esc(sk.name)}</span> 命中 ${mobs.length} 隻怪物`);
+        }else{
+          mobs[0].hp-=base;
+          this.blog(`<span class="cyan">${esc(sk.name)}</span> 對 ${esc(mobs[0].name)} 造成 ${base}`);
+        }
+      }else{
+        const heal=Math.floor((50+lv*18)*aw);
+        this.s.hp=Math.min(this.maxHp(),this.s.hp+heal);
+        this.blog(`<span class="green">自動施放 ${esc(sk.name)}</span>`);
+      }
+      return true;
+    }
+    return false;
+  };
+  Game.fight=function(){
+    this.ensure();
+    let mobs=alive(this);
+    if(!mobs.length){this.spawn(); mobs=alive(this);}
+    if(!mobs.length) return;
+    this.s.mon=mobs[0];
+    const leafBonus=this.s.leaf>0?2:1;
+    if(this.s.leaf>0) this.s.leaf=Math.max(0,this.s.leaf-(0.06*mobs.length));
+    this.castAuto();
+    this.resolveDeadMobs(leafBonus);
+    mobs=alive(this);
+    if(!mobs.length){this.s.mobs=[]; this.s.mon=null; return;}
+    const st=this.total();
+    const target=mobs[0];
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+st.spd/100)));
+    target.hp-=dmg;
+    this.blog(`普攻 ${esc(target.name)}，造成 ${dmg} 傷害`);
+    this.resolveDeadMobs(leafBonus);
+    mobs=alive(this);
+    if(!mobs.length){this.s.mobs=[]; this.s.mon=null; return;}
+    let totalTake=0;
+    const hits=[];
+    for(const m of mobs){
+      const take=Math.max(1,Math.floor(m.lv*0.9+(m.elite?18:7)-(10-st.ac)*1.15-(st.dr||0)));
+      totalTake+=take;
+      hits.push(`${esc(m.name)} ${take}`);
+    }
+    this.s.hp-=totalTake;
+    this.blog(`<span class="red">多怪圍攻</span>：${hits.join('、')}｜總傷害 ${totalTake}`);
+    if(this.s.hp<=0){
+      this.s.hp=this.maxHp()*.55;
+      this.s.exp=Math.max(0,this.s.exp-this.need()*.02);
+      this.s.mobs=[]; this.s.mon=null;
+      this.blog('<span class="red">被怪物圍攻瀕死回城，損失少量經驗</span>');
+    }
+  };
+  Game.resolveDeadMobs=function(bonus){
+    const dead=(this.s.mobs||[]).filter(m=>m&&m.hp<=0);
+    if(!dead.length) return;
+    dead.forEach(m=>this.killMobV442(m,bonus));
+    this.s.mobs=(this.s.mobs||[]).filter(m=>m&&m.hp>0);
+    this.s.mon=this.s.mobs[0]||null;
+  };
+  Game.killMobV442=function(m,bonus){
+    this.s.ach.kills++; this.s.daily.kills++;
+    this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{};
+    if(isBoss(m.name)||m.boss){this.s.codexBoss[m.name]=(this.s.codexBoss[m.name]||0)+1; this.s.ach.boss++;}
+    else this.s.codexMon[m.name]=(this.s.codexMon[m.name]||0)+1;
+    const exp=Math.floor((20+m.lv*m.lv*1.6)*(m.elite?1.25:1)*(bonus||1));
+    const ad=this.rand(m.lv*20,m.lv*(m.elite?75:55));
+    this.s.exp+=exp; this.s.adena+=ad;
+    const drops=this.map().drops||[];
+    if(drops.length && Math.random()<.42){const id=drops[this.rand(0,drops.length-1)]; this.addItem(id,1,0); this.log('掉落：'+this.def(id).name,'green');}
+    this.dropDiamond(m);
+    this.checkDiamondQuest();
+    this.level();
+    this.autoSell();
+  };
+  Game.kill=function(m,bonus){
+    if(!m) return;
+    this.killMobV442(m,bonus||1);
+    this.s.mobs=(this.s.mobs||[]).filter(x=>x!==m&&x.hp>0);
+    this.s.mon=this.s.mobs[0]||null;
+  };
+  const oldRenderStatus=Game.renderStatus&&Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    if(oldRenderStatus) oldRenderStatus();
+    this.ensure(); setTitle();
+    const mobs=alive(this);
+    const box=this.$('monsterName');
+    if(box){
+      if(mobs.length){
+        box.innerHTML=`<div class="gold">目前敵人 ${mobs.length} 隻</div>`+mobs.map(m=>{
+          const p=Math.max(0,Math.min(100,m.hp/m.max*100));
+          return `<div class="mini"><b>${esc(m.name)}</b> Lv.${m.lv}${m.elite?' <span class="orange">菁英</span>':''}｜HP ${Math.ceil(p)}%</div>`;
+        }).join('');
+      }else box.textContent='尋找中';
+    }
+    const sum=mobs.reduce((a,m)=>a+Math.max(0,m.hp),0), max=mobs.reduce((a,m)=>a+(m.max||1),0)||1;
+    this.bar('mon',sum,max);
+  };
+  Game.viewHunt=function(){
+    const map=this.map();
+    return `<h3 class="title">狩獵設定</h3><div class="grid cards"><div class="card"><b class="gold">多怪圍攻</b><p class="muted">目前地圖每次遭遇 ${packRule(map.id).join('~')} 隻怪物，每隻存活怪物都會同時攻擊角色。</p></div><div class="card"><b class="cyan">範圍技能</b><p class="muted">流星雨、月光箭雨、戰斧旋風、雷霆一擊、暴雷領域、龍炎爆發等技能會同時攻擊多隻怪。</p></div></div>`+
+      (DB.maps||[]).map(m=>`<div class="card item"><b>${esc(m.name)}</b> Lv.${m.min}-${m.max}<br><span class="muted">每波 ${packRule(m.id).join('~')} 隻｜怪物：${(m.mons||[]).filter(n=>!isBoss(n)).map(esc).join('、')}｜Boss：${(m.mons||[]).filter(isBoss).map(esc).join('、')||'無'}</span></div>`).join('');
+  };
+  Game.viewMonsterBookV23=function(){
+    this.ensure();
+    const rows=normalMonsterNames().map(n=>{const k=this.s.codexMon?.[n]||0; const maps=(DB.maps||[]).filter(m=>(m.mons||[]).includes(n)); return `<div class="card item"><div class="row"><b class="gold">${esc(n)}</b><span class="muted">怪物｜擊殺 ${k}/100</span></div><div class="muted">出沒地圖：${maps.map(m=>esc(m.name)).join('、')||'無'}</div></div>`;}).join('');
+    return `<h3 class="title">怪物圖鑑</h3><div class="card"><b class="green">分類正常</b><br><span class="muted">此頁只顯示一般怪物；Boss 已獨立至 Boss 圖鑑。</span></div>${rows}`;
+  };
+  Game.viewMonsterBook=Game.viewMonsterBookV23;
+  Game.viewBossBookV23=function(){
+    this.ensure();
+    const names=allBossNames();
+    return `<h3 class="title">Boss圖鑑</h3>`+names.map(n=>{const k=this.s.codexBoss?.[n]||0; const maps=(DB.maps||[]).filter(m=>(m.mons||[]).includes(n)); return `<div class="card item"><div class="row"><b class="orange">${esc(n)}</b><span class="muted">Boss｜擊殺 ${k}/30</span></div><div class="muted">出沒地圖：${maps.map(m=>esc(m.name)).join('、')||'世界王 / 活動'}</div></div>`;}).join('');
+  };
+  Game.viewBossBook=Game.viewBossBookV23;
+  const oldTabs=Game.tabs&&Game.tabs.bind(Game);
+  Game.tabs=function(){
+    if(oldTabs) oldTabs();
+    const box=this.$('tabs'); if(!box) return;
+    const hasMon=[...box.querySelectorAll('[data-tab]')].some(b=>b.dataset.tab==='monsterBook');
+    if(!hasMon){
+      const btn=document.createElement('button'); btn.className='tab'; btn.dataset.tab='monsterBook'; btn.textContent='怪物圖鑑'; box.appendChild(btn);
+      btn.onclick=()=>{this.tab='monsterBook';this.renderTab();};
+    }
+    const hasBoss=[...box.querySelectorAll('[data-tab]')].some(b=>b.dataset.tab==='bossBook');
+    if(!hasBoss){
+      const btn=document.createElement('button'); btn.className='tab'; btn.dataset.tab='bossBook'; btn.textContent='Boss圖鑑'; box.appendChild(btn);
+      btn.onclick=()=>{this.tab='bossBook';this.renderTab();};
+    }
+  };
+  const oldRenderTab=Game.renderTab&&Game.renderTab.bind(Game);
+  Game.renderTab=function(){
+    if(this.tab==='monsterBook'){this.$('tabs').querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab==='monsterBook')); this.$('content').innerHTML=this.viewMonsterBookV23(); return;}
+    if(this.tab==='bossBook'){this.$('tabs').querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab==='bossBook')); this.$('content').innerHTML=this.viewBossBookV23(); return;}
+    return oldRenderTab?oldRenderTab():null;
+  };
+  const oldDash=Game.viewDash&&Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const st=this.total();
+    return `<h3 class="title">總覽</h3><div class="grid cards"><div class="card"><b>戰力</b><div class="big gold">${this.fmt(st.dmg*12+this.s.lv*30+(10-st.ac)*8+st.dr*20)}</div></div><div class="card"><b>戰鬥核心</b><div class="big cyan">${alive(this).length||0}</div><span class="muted">目前存活敵人數；此版已改為多怪圍攻與範圍技能核心。</span></div><div class="card"><b>今日資源</b><p>副本 ${this.s.daily.dungeon}｜世界王 ${this.s.daily.boss}｜擊殺 ${this.s.daily.kills||0}</p><button data-act="mail">領取每日信箱</button> <button data-act="tj" class="gold">TJ補償</button></div></div>`;
+  };
+  window.LM_CORE_VERSION=V;
+  if(DB.versionHistory) DB.versionHistory.current=V;
+  window.addEventListener('DOMContentLoaded',setTitle);
+})();
 </script>
 </body></html>
