@@ -8219,5 +8219,107 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   window.LM_CORE_VERSION=V; if(DB.versionHistory) DB.versionHistory.current=V; window.addEventListener('DOMContentLoaded',()=>{ensureCss();setTitle();});
 })();
 
+
+/* === V44.5 MONSTER/BOSS BOOK SEARCH FILTER BUTTONS === */
+(function(){
+  if(!window.Game||!window.DB) return;
+  const V='V44.5';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const pct=(v,max)=>Math.max(0,Math.min(100,Math.floor((Number(v)||0)/(Number(max)||1)*100)));
+  const uniq=a=>Array.from(new Set((a||[]).filter(Boolean)));
+  const itemName=id=>DB.item?.[id]?.name||id;
+  const dropsOf=m=>uniq([...(m?.drops||[]),...(m?.materialDrops||[]),...(m?.skillBookDrops||[])]);
+  const bossExact=()=>new Set((DB.bosses||[]).map(b=>String(b.name)));
+  const bossRe=/巴風特|死亡騎士|巫妖|木乃伊王|安塔瑞斯|法利昂|巴拉卡斯|林德拜爾|吉爾塔斯|巨大飛龍|血盟巴風特|血盟死亡騎士|血盟安塔瑞斯|首領|BOSS|Boss|boss|王$/;
+  const isBossName=n=>bossExact().has(String(n))||bossRe.test(String(n||''));
+  const monsterNames=()=>uniq((DB.maps||[]).flatMap(m=>(m.mons||[]).filter(n=>!isBossName(n)))).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  const bossNames=()=>uniq([...(DB.bosses||[]).map(b=>b.name),...(DB.guildBossV23||[]).map(b=>b.name),...(DB.maps||[]).flatMap(m=>(m.mons||[]).filter(isBossName))]).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  const monsterMaps=n=>(DB.maps||[]).filter(m=>(m.mons||[]).includes(n));
+  const bossMaps=n=>(DB.maps||[]).filter(m=>(m.mons||[]).includes(n)||(m.bosses||[]).includes(n));
+  const monsterDrops=n=>uniq(monsterMaps(n).flatMap(dropsOf));
+  const bossDrops=n=>uniq(bossMaps(n).flatMap(dropsOf));
+  const title=()=>`${APP_TITLE} ${V}`;
+  function setTitle(){document.title=title(); const h=document.querySelector('#start h1'); if(h)h.textContent=title(); const t=document.querySelector('#app .top .title'); if(t)t.textContent=title();}
+  function ensureCss(){
+    if(document.getElementById('v445BookCss')) return;
+    const st=document.createElement('style'); st.id='v445BookCss'; st.textContent=`
+      .book-v445-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:12px}.book-v445-stat{background:#081120;border:1px solid #26364e;border-radius:14px;padding:14px}.book-v445-stat b{display:block;color:var(--muted);margin-bottom:6px}.book-v445-stat strong{font-size:34px;color:var(--gold)}
+      .book-v445-rule{border:1px solid #26364e;border-radius:14px;padding:12px;margin:10px 0;background:#081120}.book-v445-rule-title{color:var(--gold);font-weight:800;margin-bottom:8px}.book-v445-rule-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}.book-v445-rule-grid>div{border:1px solid #26364e;border-radius:10px;padding:10px;background:#07101e;color:var(--text)}
+      .book-v445-search{display:grid;grid-template-columns:190px 1fr;gap:10px;align-items:center;border:1px solid #26364e;border-radius:14px;padding:12px;margin:10px 0;background:#081120}.book-v445-search input{width:100%;background:#1d293b;border:1px solid #475569;border-radius:10px;padding:10px 12px}
+      .book-v445-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.book-v445-grid{display:grid;gap:10px}.book-v445-card{background:#081120;border:1px solid #26364e;border-radius:13px;padding:12px}.book-v445-card.ready{border-color:#facc15;background:#16180d}.book-v445-card.done{border-color:#22c55e}.book-v445-card.boss{border-color:#4c1d1d}.book-v445-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.book-v445-progress{height:18px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:8px 0}.book-v445-progress span{display:block;height:100%;background:linear-gradient(90deg,#854d0e,#facc15)}.book-v445-progress b{position:absolute;inset:0;text-align:center;font-size:12px;line-height:16px;text-shadow:1px 1px 2px #000}.book-v445-sub{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px}.book-v445-detail{margin-top:8px}.book-v445-detail summary{cursor:pointer;color:var(--gold)}.book-v445-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.book-v445-pills b{width:100%;color:var(--muted)}@media(max-width:720px){.book-v445-search{grid-template-columns:1fr}}
+    `; document.head.appendChild(st);
+  }
+  function hero(name,desc){return Game.hero?Game.hero(name,desc):`<h3 class="title">${esc(name)}</h3><div class="card"><span class="muted">${esc(desc)}</span></div>`;}
+  function bookCard({name,kind,kills,goal,maps,drops,claimed,can,bossId}){
+    const isBoss=kind==='boss', p=pct(kills,goal), first=maps[0];
+    const mapPills=maps.map(m=>`<span class="pill ${Game.s?.map===m.id?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>';
+    const dropPills=drops.map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+    const status=claimed?'<span class="pill green">已領取</span>':can?'<span class="pill red">可領取</span>':kills>0?'<span class="pill blue">已探索</span>':'<span class="pill muted">未探索</span>';
+    const cls=`book-v445-card ${isBoss?'boss ':''}${claimed?'done':can?'ready':kills>0?'active':''}`;
+    const gotoAct=isBoss?'goBossBookMapV445':'goMonsterBookMapV445';
+    const targetAct=isBoss?'targetBossBookV445':'targetMonsterBookV445';
+    const claimAct=isBoss?'claimBossBookV445':'claimMonBookV445';
+    const challenge=isBoss&&bossId?`<button data-act="boss" data-arg="${esc(bossId)}">討伐</button>`:'';
+    return `<div class="${cls}"><div class="row"><div><b class="${isBoss?'red':'gold'}">${esc(name)}</b> ${status}<br><span class="muted">分類：${isBoss?'Boss':'一般怪物'}｜${isBoss?'討伐':'擊殺'} ${num(kills)}/${goal}｜主要地圖：${first?esc(first.name):'無'}</span></div><div class="book-v445-actions"><button data-act="${gotoAct}" data-arg="${esc(name)}" ${first?'':'disabled'}>前往</button><button data-act="${targetAct}" data-arg="${esc(name)}" ${first?'':'disabled'}>指定目標</button>${challenge}<button data-act="${claimAct}" data-arg="${esc(name)}" ${can?'':'disabled'}>領取</button></div></div><div class="book-v445-progress"><span style="width:${p}%"></span><b>${p}%</b></div><div class="book-v445-sub"><span>${isBoss?'討伐':'擊殺'} ${num(kills)}</span><span>地圖 ${maps.length}</span><span>掉落 ${drops.length}</span></div><details class="book-v445-detail"><summary>地圖 / 掉落</summary><div class="book-v445-pills"><b>出沒地圖</b>${mapPills}</div><div class="book-v445-pills"><b>掉落</b>${dropPills}</div></details></div>`;
+  }
+  function matchSearch(name,maps,drops,q){
+    if(!q) return true;
+    const hay=[name,...maps.map(m=>m.name),...drops.map(id=>itemName(id)),...drops].join(' ').toLowerCase();
+    return hay.includes(q);
+  }
+  function renderBook(kind){
+    Game.ensure(); ensureCss();
+    Game.s.codexFilter=Game.s.codexFilter||{}; Game.s.codexSort=Game.s.codexSort||{}; Game.s.codexSearch=Game.s.codexSearch||{};
+    const isBoss=kind==='boss', goal=isBoss?3:100, names=isBoss?bossNames():monsterNames(), store=isBoss?Game.s.codexBoss:Game.s.codexMon;
+    const filter=Game.s.codexFilter[kind]||'all', sort=Game.s.codexSort[kind]||'progress', q=String(Game.s.codexSearch[kind]||'').trim().toLowerCase();
+    let list=names.filter(n=>{
+      const maps=isBoss?bossMaps(n):monsterMaps(n), drops=isBoss?bossDrops(n):monsterDrops(n), k=Number(store[n]||0), claimed=!!Game.s.claimed[(isBoss?'boss_':'mon_')+n], ready=k>=goal&&!claimed;
+      if(!matchSearch(n,maps,drops,q)) return false;
+      if(filter==='current') return maps.some(m=>m.id===Game.s.map);
+      if(filter==='unseen') return k<=0;
+      if(filter==='ready') return ready;
+      if(filter==='claimed') return claimed;
+      return true;
+    });
+    list.sort((a,b)=>{const ka=Number(store[a]||0),kb=Number(store[b]||0); if(sort==='kills')return kb-ka; if(sort==='level')return (((isBoss?bossMaps(a):monsterMaps(a))[0]?.min)||999)-(((isBoss?bossMaps(b):monsterMaps(b))[0]?.min)||999); if(sort==='name')return String(a).localeCompare(String(b),'zh-Hant'); return Math.min(goal,kb)-Math.min(goal,ka);});
+    const ready=names.filter(n=>Number(store[n]||0)>=goal&&!Game.s.claimed[(isBoss?'boss_':'mon_')+n]).length;
+    const claimed=names.filter(n=>!!Game.s.claimed[(isBoss?'boss_':'mon_')+n]).length;
+    const explored=names.filter(n=>Number(store[n]||0)>0||!!Game.s.claimed[(isBoss?'boss_':'mon_')+n]).length;
+    const titleText=isBoss?'BOSS圖鑑':'怪物圖鑑';
+    const desc=isBoss?'只顯示明確 Boss；可搜尋掉落、Boss、地圖，並用功能按鈕篩選。':'只顯示一般怪物；可搜尋掉落、怪物、Boss、地圖，並用功能按鈕篩選。';
+    const filters=[['all','全部'],['current','目前地圖'],['ready','可領取'],['claimed','已領取'],['unseen','未探索']];
+    const sorts=[['progress','進度'],['kills',isBoss?'討伐':'擊殺'],['level','地圖等級'],['name','名稱']];
+    const rows=list.map(n=>bookCard({name:n,kind:isBoss?'boss':'monster',kills:Number(store[n]||0),goal,maps:isBoss?bossMaps(n):monsterMaps(n),drops:isBoss?bossDrops(n):monsterDrops(n),claimed:!!Game.s.claimed[(isBoss?'boss_':'mon_')+n],can:Number(store[n]||0)>=goal&&!Game.s.claimed[(isBoss?'boss_':'mon_')+n],bossId:(DB.bosses||[]).find(b=>b.name===n)?.id})).join('');
+    return hero(titleText,desc)+`<div class="book-v445-stats"><div class="book-v445-stat"><b>${isBoss?'Boss':'怪物'}</b><strong>${names.length}</strong></div><div class="book-v445-stat"><b>已探索</b><strong class="green">${explored}/${names.length}</strong></div><div class="book-v445-stat"><b>可領取</b><strong class="red">${ready}</strong></div><div class="book-v445-stat"><b>已領取</b><strong class="blue">${claimed}</strong></div><div class="book-v445-stat"><b>顯示結果</b><strong class="cyan">${list.length}</strong></div></div><div class="book-v445-rule"><div class="book-v445-rule-title">整理規則</div><div class="book-v445-rule-grid"><div>怪物：只顯示一般怪物</div><div>Boss：只顯示明確 Boss</div><div>掉落：drops + materialDrops + skillBookDrops</div><div>修復：Boss 不再重複列入怪物</div></div></div><div class="book-v445-search"><b>搜尋掉落 / 怪物 / Boss</b><input data-book-search="${kind}" value="${esc(Game.s.codexSearch[kind]||'')}" placeholder="輸入道具、技能書、怪物、Boss、地圖名稱"></div><div class="book-v445-toolbar">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="bookFilterV445" data-arg="${kind}|${id}">${n}</button>`).join('')}</div><div class="book-v445-toolbar">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="bookSortV445" data-arg="${kind}|${id}">排序：${n}</button>`).join('')}</div><div class="book-v445-grid">${rows||'<p class="muted">沒有符合條件的資料</p>'}</div>`;
+  }
+  const oldEnsure=Game.ensure&&Game.ensure.bind(Game);
+  Game.ensure=function(){ if(oldEnsure) oldEnsure(); if(!this.s) return; this.s.version=V; this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{}; this.s.claimed=this.s.claimed||{}; this.s.codexFilter=this.s.codexFilter||{}; this.s.codexSort=this.s.codexSort||{}; this.s.codexSearch=this.s.codexSearch||{}; Object.keys(this.s.codexMon).forEach(n=>{ if(isBossName(n)){ this.s.codexBoss[n]=(this.s.codexBoss[n]||0)+(Number(this.s.codexMon[n])||0); delete this.s.codexMon[n]; }}); };
+  Game.viewMonsterBookV23=function(){return renderBook('monster');}; Game.viewMonsterBook=Game.viewMonsterBookV23;
+  Game.viewBossBookV23=function(){return renderBook('boss');}; Game.viewBossBook=Game.viewBossBookV23;
+  const oldAction=Game.action&&Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    this.ensure();
+    if(a==='bookFilterV445'){const [k,v]=String(arg||'').split('|');this.s.codexFilter[k]=v||'all';this.renderTab();return;}
+    if(a==='bookSortV445'){const [k,v]=String(arg||'').split('|');this.s.codexSort[k]=v||'progress';this.renderTab();return;}
+    if(a==='goMonsterBookMapV445'){const m=monsterMaps(arg)[0]; if(m){this.s.map=m.id; this.s.mobs=[]; this.s.mon=null; this.render();} return;}
+    if(a==='targetMonsterBookV445'){const m=monsterMaps(arg)[0]; if(m){this.s.map=m.id; this.s.targetMonster=String(arg||''); this.s.mobs=[]; this.s.mon=null; this.log('怪物圖鑑指定目標：'+arg,'green'); this.render();} return;}
+    if(a==='goBossBookMapV445'){const m=bossMaps(arg)[0]; if(m){this.s.map=m.id; this.s.mobs=[]; this.s.mon=null; this.render();} return;}
+    if(a==='targetBossBookV445'){const m=bossMaps(arg)[0]; if(m){this.s.map=m.id; this.s.targetMonster=String(arg||''); this.s.mobs=[]; this.s.mon=null; this.log('BOSS圖鑑指定目標：'+arg,'green'); this.render();} return;}
+    if(a==='claimMonBookV445'){const n=String(arg||''), key='mon_'+n; if((this.s.codexMon[n]||0)>=100&&!this.s.claimed[key]){this.s.claimed[key]=1; this.addItem('m18_powder',50); this.addItem('v23_event_coin',10); this.log('怪物圖鑑完成：'+n,'green'); this.render();} return;}
+    if(a==='claimBossBookV445'){const n=String(arg||''), key='boss_'+n; if((this.s.codexBoss[n]||0)>=3&&!this.s.claimed[key]){this.s.claimed[key]=1; this.addItem('v23_tj_coin',1); this.addItem('v23_boss_token',1); this.log('BOSS圖鑑完成：'+n,'green'); this.render();} return;}
+    return oldAction?oldAction(a,arg,b):null;
+  };
+  let searchTimer=null;
+  document.addEventListener('input',function(e){
+    const el=e.target.closest&&e.target.closest('[data-book-search]'); if(!el||!Game.s) return;
+    const k=el.dataset.bookSearch; Game.s.codexSearch=Game.s.codexSearch||{}; Game.s.codexSearch[k]=el.value;
+    clearTimeout(searchTimer); searchTimer=setTimeout(()=>{ if(Game.tab==='monsterBook'||Game.tab==='bossBook') Game.renderTab(); },180);
+  });
+  const oldRenderStatus=Game.renderStatus&&Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){ if(oldRenderStatus) oldRenderStatus(); setTitle(); };
+  window.LM_CORE_VERSION=V; if(DB.versionHistory) DB.versionHistory.current=V; window.addEventListener('DOMContentLoaded',()=>{ensureCss();setTitle();});
+})();
+
 </script>
 </body></html>
