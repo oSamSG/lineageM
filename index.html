@@ -2831,6 +2831,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.1'; const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
 })();
 
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+})();
+
 </script>
 
 
@@ -3656,6 +3846,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     if(this.tab==='audit'){this.tab='dash';}
     return oldRenderTabClean.call(this);
   };
+})();
+
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
 })();
 
 </script>
@@ -4802,6 +5182,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   };
 })();
 
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+})();
+
 </script>
 
 
@@ -4952,6 +5522,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   document.title='天堂M Core Rebuild V40｜血盟副本修正版';
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V40';
 })();
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+})();
+
 </script>
 
 
@@ -5202,6 +5962,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   css.textContent=`.map-v41-card{background:#081120;border:1px solid #26364e;border-radius:14px;padding:12px;margin-bottom:10px}.map-v41-card.active{border-color:#facc15;background:#151807}.map-v41-card.ready{border-color:#ef4444}.map-v41-card.done{border-color:#22c55e}.map-v41-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:#94a3b8;font-size:13px;margin:8px 0}.map-v41-card summary{cursor:pointer;color:#e5eef9;margin-top:8px}.map-v41-card .drop-box{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}.map-v41-card .drop-box b{color:#facc15;margin-right:4px}.map-v41-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}.map-v41-rules span{background:#07101d;border:1px solid #26364e;border-radius:10px;padding:8px;color:#cbd5e1}.pill.red{border-color:#ef4444;color:#fca5a5;background:#2a0f12}.pill.blue{border-color:#60a5fa;color:#93c5fd;background:#0b1628}.pill.gold{border-color:#facc15;color:#facc15;background:#2b2512}`;
   document.head.appendChild(css);
 })();
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+})();
+
 </script>
 
 
@@ -5540,6 +6490,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     setText('#start h1','天堂M Core Rebuild V43');
     setText('#app .top .title','天堂M Core Rebuild V43｜分解材料優化版');
   });
+})();
+
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
 })();
 
 </script>
@@ -5892,6 +7032,196 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; };
   window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.3'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
 })();
+
+/* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
+   修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
+(function(){
+  const VERSION='V43.4';
+  const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
+  const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
+  const rankName=r=>(window.R&&R[r]?R[r][0]:r);
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const clampRank=r=>['N','R','SR','SSR','L','M'].includes(String(r))?String(r):'N';
+
+  function equippedSet(game){return game.equippedKeys?game.equippedKeys():new Set(Object.values(game.s?.equip||{}).filter(Boolean));}
+  function leafMax(game){return Math.max(200,Math.ceil(Number(game.s?.leaf)||0));}
+  function leafProfile(game){
+    const leaf=Math.max(0,Number(game.s?.leaf)||0);
+    const pearl=(game.s?.buffs?.pearl||0)>Date.now();
+    if(leaf<=0) return {label:'無葉子',exp:1,adena:1,drop:1,consume:0,pearl};
+    if(leaf<=100) return {label:'葉子 1~100',exp:1.5,adena:1.2,drop:1.1,consume:.06,pearl};
+    if(leaf<=500) return {label:'葉子 101~500',exp:2.0,adena:1.35,drop:1.2,consume:.08,pearl};
+    if(leaf<=2000) return {label:'葉子 501~2000',exp:2.5,adena:1.5,drop:1.3,consume:.1,pearl};
+    return {label:'葉子 2000+',exp:3.0,adena:1.65,drop:1.4,consume:.12,pearl};
+  }
+  function diamondRangeByMonster(m){
+    const lv=Math.max(1,Math.floor(Number(m?.lv)||1));
+    let min=1,max=3;
+    if(lv>=20){min=2;max=6;}
+    if(lv>=40){min=4;max=12;}
+    if(lv>=60){min=8;max=22;}
+    if(lv>=80){min=15;max=45;}
+    if(lv>=95){min=25;max=80;}
+    if(m?.boss){min*=3;max*=5;}
+    return [min,max];
+  }
+  function addLeaf(game,n,reason){
+    game.s.leaf=Math.max(0,(Number(game.s.leaf)||0)+Math.max(0,Number(n)||0));
+    if(reason) game.log(`${reason}：葉子 +${num(n)}，目前 ${num(game.s.leaf)}`,'green');
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return;
+    this.s.version='core_rebuild_v43_4_leaf_diamond_disassemble_fix';
+    this.s.settings=this.s.settings||{};
+    this.s.settings.autoDisRank=clampRank(this.s.settings.autoDisRank);
+    this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+    this.s.leafStats=this.s.leafStats||{bonusExp:0,bonusAdena:0,extraDrops:0,consumed:0};
+  };
+
+  if(Game.repairSaveLite){
+    const oldRepair=Game.repairSaveLite.bind(Game);
+    Game.repairSaveLite=function(verbose=true){
+      const before=Number(this.s?.leaf)||0;
+      const r=oldRepair(false);
+      if(this.s) this.s.leaf=Math.max(0,Number.isFinite(before)?before:(Number(this.s.leaf)||0));
+      if(verbose){this.log(`存檔健康檢查完成，葉子已改為無上限模式`,'green'); this.render();}
+      return r;
+    };
+  }
+
+  Game.leafProfile=function(){return leafProfile(this);};
+  Game.leafMax=function(){return leafMax(this);};
+
+  const oldUse=Game.use.bind(Game);
+  Game.use=function(k){
+    const it=this.inv(k), d=it&&this.def(it.id); if(!it||!d) return oldUse(k);
+    const now=Date.now();
+    if(d.id==='leaf_box'||/葉子補充箱/.test(d.name||'')){ addLeaf(this,50,'使用葉子補充箱'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_diamond'||d.id==='v22_dragon_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.dragonDiamond=now+30*60*1000; addLeaf(this,200,'使用龍之鑽石'); this.rem(k,1); this.render(); return; }
+    if(d.id==='v23_dragon_s_diamond'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; this.s.buffs.dragonDiamond=now+60*60*1000; addLeaf(this,500,'使用高級龍之鑽石'); this.s.exp+=this.need()*0.25; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_growth_potion'){ addLeaf(this,30,'使用成長藥水'); this.s.exp+=this.need()*0.08; this.rem(k,1); this.level(); this.render(); return; }
+    if(d.id==='v22_dragon_pearl'){ this.s.buffs=this.s.buffs||{}; this.s.buffs.pearl=now+30*60*1000; addLeaf(this,10,'使用龍之珍珠'); this.rem(k,1); this.render(); return; }
+    return oldUse(k);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    if(!this.s||Number(this.s.leaf||0)>80) return 0;
+    let used=0;
+    Object.keys(this.s.inv||{}).some(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(d&&(d.id==='leaf_box'||/葉子/.test(d.name||''))){this.use(k);used++;return Number(this.s.leaf||0)>=160;}return false;});
+    if(used&&verbose) this.log(`自動使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.dropDiamond=function(m){
+    const [min,max]=diamondRangeByMonster(m);
+    const amount=this.rand?this.rand(min,max):Math.floor(min+Math.random()*(max-min+1));
+    this.gainDiamond(amount,`${m?.boss?'Boss':'怪物'}等級 ${Math.floor(m?.lv||1)} 掉落：${m?.name||'未知怪物'}`);
+  };
+
+  Game.fight=function(){
+    if(!this.s) return;
+    if(!this.s.mon||this.s.mon.hp<=0) this.spawn();
+    const m=this.s.mon; if(!m) return;
+    const prof=leafProfile(this); m.__leaf=prof;
+    if(typeof this.castAuto==='function') this.castAuto();
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const st=this.total();
+    if(prof.consume>0 && !prof.pearl){
+      const consume=Math.min(Number(this.s.leaf)||0,prof.consume+(Math.max(1,m.lv||1)/1200));
+      this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-consume);
+      this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.consumed=(this.s.leafStats.consumed||0)+consume;
+    }
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    m.hp-=dmg; this.blog(`造成 ${dmg} 傷害給 ${m.name}${prof.exp>1?'｜葉子EXP x'+prof.exp:''}`);
+    if(m.hp<=0){this.kill(m,prof.exp);return;}
+    const take=Math.max(1,Math.floor(m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0)));
+    this.s.hp-=take;
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mon=null;this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+
+  Game.kill=function(m,bonus=1){
+    if(!this.s||!m) return;
+    const prof=m.__leaf||leafProfile(this); const expBonus=Math.max(1,Number(bonus)||prof.exp||1);
+    this.s.ach=this.s.ach||{}; this.s.daily=this.s.daily||{};
+    this.s.ach.kills=(this.s.ach.kills||0)+1; this.s.daily.kills=(this.s.daily.kills||0)+1; if(m.boss)this.s.ach.boss=(this.s.ach.boss||0)+1;
+    const baseExp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1));
+    const exp=Math.floor(baseExp*expBonus);
+    const baseAdena=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    const adena=Math.floor(baseAdena*(prof.adena||1));
+    this.s.exp+=exp; this.s.adena+=adena;
+    if(expBonus>1){this.s.leafStats=this.s.leafStats||{}; this.s.leafStats.bonusExp=(this.s.leafStats.bonusExp||0)+(exp-baseExp); this.s.leafStats.bonusAdena=(this.s.leafStats.bonusAdena||0)+(adena-baseAdena);}
+    const drops=(this.map()?.drops||[]);
+    const rate=Math.min(.9,.42*(prof.drop||1));
+    if(drops.length&&Math.random()<rate){const id=drops[this.rand(0,drops.length-1)]; if(id&&this.def(id)){this.addItem(id,1,0);this.log('掉落：'+this.def(id).name,'green');}}
+    this.dropDiamond(m);
+    if(typeof this.checkDiamondQuest==='function') this.checkDiamondQuest();
+    this.level(); this.s.mon=null; if(typeof this.autoSell==='function') this.autoSell();
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const max=rankValue(maxRank), locked=equippedSet(this), rewards={}, keys=[];
+    Object.keys(this.s?.inv||{}).forEach(k=>{const it=this.inv(k),d=it&&this.def(it.id);if(!it||!d)return;if(locked.has(k))return;if(!equipTypes.includes(d.type))return;if(rankValue(d.rank)>max)return;if((it.enchant||0)>=5)return;const rw=this.disassembleRewards?this.disassembleRewards(k):[];if(!rw.length)return;keys.push(k);rw.forEach(([id,q])=>{rewards[id]=(rewards[id]||0)+q;});});
+    return {keys,rewards};
+  };
+  Game.disassembleByRank=function(maxRank='N'){
+    maxRank=clampRank(maxRank); const batch=this.collectDisassembleBatch(maxRank);
+    if(!batch.keys.length){alert(`沒有符合 ${rankName(maxRank)} 以下的未穿戴裝備可分解。`);return;}
+    if(!confirm(`確認批次分解 ${batch.keys.length} 件 ${rankName(maxRank)} 以下未穿戴裝備？\n+5 以上裝備會自動保留。`))return;
+    Object.entries(batch.rewards).forEach(([id,q])=>this.addItem(id,q,0)); batch.keys.forEach(k=>this.rem(k,1));
+    this.s.disassembleLog=this.s.disassembleLog||[]; this.s.disassembleLog.unshift({t:Date.now(),item:`批次分解 ${rankName(maxRank)} 以下`,rank:maxRank,enchant:0,rewards:Object.entries(batch.rewards).map(([id,qty])=>({id,qty}))}); this.s.disassembleLog=this.s.disassembleLog.slice(0,30);
+    const text=Object.entries(batch.rewards).map(([id,q])=>(this.def(id)?.name||id)+' ×'+q).join('、'); this.log(`批次分解 ${batch.keys.length} 件，取得 ${text}`,'green'); if(this.mergeStackables)this.mergeStackables(false); this.save(false); this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='setDisRankV434'){this.s.settings=this.s.settings||{};this.s.settings.autoDisRank=clampRank(arg);this.log('分解上限已切換為：'+rankName(this.s.settings.autoDisRank)+'以下','green');this.render();return;}
+    if(a==='disRank') return this.disassembleByRank(arg||this.s?.settings?.autoDisRank||'N');
+    return oldAction(a,arg,b);
+  };
+
+  const oldViewSettings=Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const base=oldViewSettings(); const cur=clampRank(this.s?.settings?.autoDisRank||'N');
+    const buttons=['N','R','SR'].map(r=>`<button class="tab ${cur===r?'on gold':''}" data-act="setDisRankV434" data-arg="${r}">${rankName(r)}以下</button>`).join(' ');
+    return base+`<div class="card"><b class="gold">V43.4 分解上限修復</b><br><span class="muted">目前自動分解上限：${rankName(cur)}以下。已改用按鈕切換，避免 select 被舊版數值轉換成 NaN，造成只能停在一般。</span><div class="quick-actions" style="margin-top:8px">${buttons}</div></div>`;
+  };
+
+  const oldViewBag=Game.viewBag.bind(Game);
+  Game.viewBag=function(){
+    let html=oldViewBag();
+    const tools=`<div class="card"><div class="row"><b class="gold">V43.4 批次分解</b><span class="muted">只處理未穿戴裝備，+5 以上保留</span></div><div class="quick-actions"><button data-act="disRank" data-arg="N">批次分解一般</button><button data-act="disRank" data-arg="R">批次分解高級以下</button><button data-act="disRank" data-arg="SR">批次分解稀有以下</button></div></div>`;
+    return html.replace('<h3 class="title">背包 / 分解材料</h3>','<h3 class="title">背包 / 分解材料</h3>'+tools);
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.4 葉子與鑽石規則</b><br><span class="muted">葉子已移除 200 上限。打怪時會消耗葉子並依持有量取得 EXP 加成：1~100 x1.5、101~500 x2、501~2000 x2.5、2000+ x3。所有怪物擊殺都會依怪物等級掉落隨機鑽石，Boss 額外放大。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const prof=leafProfile(this), leaf=Math.floor(Number(this.s?.leaf)||0);
+    return oldViewDash()+`<div class="card"><b class="gold">V43.4 葉子 / 鑽石 / 分解修復</b><br><span class="muted">葉子：${num(leaf)}（無上限）｜${prof.label}｜EXP x${prof.exp}｜打怪消耗葉子｜所有怪物依等級必掉鑽石。分解上限已可切換一般 / 高級以下 / 稀有以下。</span></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus.call(this);
+    if(this.s){
+      this.s.leaf=Math.max(0,Number(this.s.leaf)||0);
+      const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
+      const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+  };
+
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+})();
+
 </script>
 
 </body></html>
