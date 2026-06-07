@@ -13,7 +13,7 @@
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
 'use strict';
-const APP_VERSION='V44';
+const APP_VERSION='V44.1';
 const APP_STORAGE_KEY='lm_core_rebuild_current';
 const APP_TITLE='天堂M Core Rebuild';
 const APP_FULL_TITLE=()=>`${APP_TITLE} ${APP_VERSION}`;
@@ -7641,5 +7641,59 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.viewMonsterBook=Game.viewMonsterBookV23;
   window.addEventListener('DOMContentLoaded',()=>{document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h)h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t)t.textContent=APP_FULL_TITLE();});
 })();
+
+<!-- === V44.1 CLEANUP: REMOVE VERSION EXPLANATION CARDS === -->
+(function(){
+  const CLEAN_VERSION='V44.1';
+  const title=()=>`${APP_TITLE} ${CLEAN_VERSION}`;
+  const setTitles=()=>{
+    document.title=title();
+    const h=document.querySelector('#start h1'); if(h) h.textContent=title();
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=title();
+  };
+  const stripExplainCards=(html)=>String(html||'')
+    .replace(/<div class="card"><b class="gold">V43\.4 葉子 \/ 鑽石 \/ 分解修復<\/b><br><span class="muted">[\s\S]*?<\/span><\/div>/g,'')
+    .replace(/<div class="card"><b class="green">每日刷新核心<\/b><p class="muted">[\s\S]*?<\/p><\/div>/g,'')
+    .replace(/<div class="card"><b class="cyan">V43\.4 葉子與鑽石規則<\/b><br><span class="muted">[\s\S]*?<\/span><\/div>/g,'')
+    .replace(/<div class="card"><b class="gold">V43\.4 分解上限修復<\/b><br><span class="muted">[\s\S]*?<\/span><div class="quick-actions" style="margin-top:8px">([\s\S]*?)<\/div><\/div>/g,'<div class="card"><div class="quick-actions" style="margin-top:8px">$1</div></div>')
+    .replace(/<div class="card"><div class="row"><b class="gold">V43\.4 批次分解<\/b><span class="muted">[\s\S]*?<\/span><\/div><div class="quick-actions">([\s\S]*?)<\/div><\/div>/g,'<div class="card"><div class="quick-actions">$1</div></div>')
+    .replace(/<div class="card"><b class="green">商城每日刷新<\/b><br><span class="muted">[\s\S]*?<\/span><br>([\s\S]*?)<\/div>/g,'<div class="card">$1</div>');
+
+  const oldDash=Game.viewDash&&Game.viewDash.bind(Game);
+  if(oldDash){
+    Game.viewDash=function(){ return stripExplainCards(oldDash()); };
+  }
+
+  const oldHunt=Game.viewHunt&&Game.viewHunt.bind(Game);
+  if(oldHunt){
+    Game.viewHunt=function(){ return stripExplainCards(oldHunt()).replace(/<h3 class="title">狩獵設定<\/h3>\s*<h3 class="title">狩獵設定<\/h3>/g,'<h3 class="title">狩獵設定</h3>'); };
+  }
+
+  const oldSettings=Game.viewSettings&&Game.viewSettings.bind(Game);
+  Game.viewSettings=function(){
+    const s=this.s.settings;
+    return `<h3 class="title">自動設定</h3>`+
+      `<label class="item row">HP低於%自動喝水 <input data-set="hpLimit" type="number" min="1" max="99" value="${s.hpLimit}"></label>`+
+      `<label class="item row">啟用自動喝水 <input data-set="autoPotion" type="checkbox" ${s.autoPotion?'checked':''}></label>`+
+      `<label class="item row">自動買水 <input data-set="autoBuy" type="checkbox" ${s.autoBuy?'checked':''}></label>`+
+      `<label class="item row">自動挑戰野外Boss <input data-set="autoBoss" type="checkbox" ${s.autoBoss?'checked':''}></label>`+
+      `<label class="item row">自動販售一般裝備 <input data-set="autoSell" type="checkbox" ${s.autoSell?'checked':''}></label>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus&&Game.renderStatus.bind(Game);
+  if(oldRenderStatus){
+    Game.renderStatus=function(){ oldRenderStatus(); setTitles(); };
+  }
+
+  const oldEnsure=Game.ensure&&Game.ensure.bind(Game);
+  if(oldEnsure){
+    Game.ensure=function(){ oldEnsure(); if(this.s) this.s.version=CLEAN_VERSION; };
+  }
+
+  window.LM_CORE_VERSION=CLEAN_VERSION;
+  if(DB.versionHistory) DB.versionHistory.current=CLEAN_VERSION;
+  window.addEventListener('DOMContentLoaded',setTitles);
+})();
+
 </script>
 </body></html>
