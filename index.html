@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>天堂M Core Rebuild V43｜分解材料優化版</title>
+<title>天堂M Core Rebuild</title>
 <style>
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
@@ -13,6 +13,10 @@
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
 'use strict';
+const APP_VERSION='V44';
+const APP_STORAGE_KEY='lm_core_rebuild_current';
+const APP_TITLE='天堂M Core Rebuild';
+const APP_FULL_TITLE=()=>`${APP_TITLE} ${APP_VERSION}`;
 const R={N:['一般',1],R:['高級',2],SR:['稀有',3],SSR:['英雄',4],L:['傳說',5],M:['神話',6]};
 const E=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const DB={classes:{},item:{},cards:{},maps:[],dungeons:[],bosses:[],codex:[],skills:{}};
@@ -97,7 +101,7 @@ window.DB=DB;window.G=Game;
 (function(){
   const finite=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
   const pick=(a)=>a[Math.floor(Math.random()*a.length)];
-  document.title='天堂M Core Rebuild V16｜官方平衡模擬核心';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V27';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V16';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜官方平衡模擬核心：移除GM補償、免費解鎖與過高鑽石掉落；整合職業、地圖、怪物、裝備、強化、技能、變身、娃娃、副本、Boss、血盟、收藏、製作、交易所、商城、PVP。';
@@ -964,7 +968,7 @@ window.DB=DB;window.G=Game;
   const fmt=n=>Math.floor(n||0).toLocaleString();
   const ensureItem=(id,o)=>{ DB.item[id]=Object.assign({id,type:'material',rank:'N',price:100},DB.item[id]||{},o); };
 
-  document.title='天堂M Core Rebuild V23｜全系統完善版';
+  document.title=APP_FULL_TITLE();
   const titleEl=document.querySelector('.top .title'); if(titleEl) titleEl.textContent='天堂M Core Rebuild V23｜全系統完善版';
 
   // V22：補足商城、卡片分解與祝福粉末相關道具
@@ -1166,7 +1170,7 @@ window.DB=DB;window.G=Game;
    V23 FULL SYSTEM EXPANSION
    ========================= */
 (function(){
-  document.title='天堂M Core Rebuild V23｜全系統完善版';
+  document.title=APP_FULL_TITLE();
   const titleEl=document.querySelector('.top .title'); if(titleEl) titleEl.textContent='天堂M Core Rebuild V23｜全系統完善版';
   const $n = (v)=> (window.fmt?fmt(v):Math.floor(v||0).toLocaleString());
   const $e = (v)=> (window.esc?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
@@ -1463,7 +1467,7 @@ window.DB=DB;window.G=Game;
 
   // 標題版本號
   document.querySelectorAll('.title').forEach(x=>{ if((x.textContent||'').includes('天堂M Core Rebuild')) x.textContent='天堂M Core Rebuild V25'; });
-  document.title='天堂M Core Rebuild V25';
+  document.title=APP_FULL_TITLE();
 
   Game.leafProfile=function(){
     const leaf = Math.floor(this.s?.leaf||0);
@@ -1658,7 +1662,7 @@ window.DB=DB;window.G=Game;
   const CUM = {1:0};
   for(let lv=2;lv<=99;lv++) CUM[lv]=(CUM[lv-1]||0)+(REQ[lv-1]||0);
 
-  document.title='天堂M Core Rebuild V25';
+  document.title=APP_FULL_TITLE();
   document.querySelectorAll('.title').forEach(x=>{ if((x.textContent||'').includes('天堂M Core Rebuild')) x.textContent='天堂M Core Rebuild V25'; });
 
   const oldEnsureV25=Game.ensure;
@@ -1933,7 +1937,7 @@ window.DB=DB;window.G=Game;
     return oldAuditV27.call(this)+`<div class="card"><b class="gold">V27 角色傷害平衡</b><br><span class="muted">已降低角色普攻、技能、攻速疊乘與 Boss 輸出倍率；技能加入冷卻；怪物與 Boss HP 依等級提高，避免角色傷害過度變態。</span></div>`;
   };
 
-  document.title='天堂M Core Rebuild V27';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V27';
 })();
 
@@ -2033,7 +2037,7 @@ window.DB=DB;window.G=Game;
     return p+oldDashV28.call(this);
   };
 
-  document.title='天堂M Core Rebuild V28';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V28';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V28';
 })();
@@ -2149,7 +2153,7 @@ window.DB=DB;window.G=Game;
   css.textContent=`.enhance-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}.enhance-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:138px}.enhance-card.worn{border-color:var(--gold);background:#17170b}.enhance-card .row button{padding:5px 8px}.muted b{color:var(--gold)}`;
   document.head.appendChild(css);
 
-  document.title='天堂M Core Rebuild V29';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V29';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V29';
 })();
@@ -2302,7 +2306,7 @@ window.DB=DB;window.G=Game;
   const css=document.createElement('style');
   css.textContent=`.craft-v30-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}.craft-v30-card{background:#081120;border:1px solid #26364e;border-radius:12px;padding:10px;min-height:148px}.craft-v30-card .drop-box{margin-top:8px}.page-tabs .tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}`;
   document.head.appendChild(css);
-  document.title='天堂M Core Rebuild V30';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V30';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V30';
 })();
@@ -2431,7 +2435,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return oldAudit.call(this)+`<div class="card"><b class="gold">V33 安全檢查</b><br><span class="muted">販售/分解流程會先檢查 equip 欄位中的 item key，確認不是穿戴中才允許消耗。</span></div>`;
   };
 
-  document.title='天堂M Core Rebuild V33｜已裝備道具販售保護版';
+  document.title=APP_FULL_TITLE();
 })();
 
 
@@ -2444,7 +2448,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const TODAY=()=>new Date().toISOString().slice(0,10);
   const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
 
-  document.title='天堂M Core Rebuild V37';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
@@ -2825,10 +2829,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.renderStatus=function(){
     oldRenderStatus(); addCss();
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.1｜全內容自動化優化版';
-    document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title='天堂M Core Rebuild V43.1｜全內容自動化優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.1'; const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
+  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
 })();
 
 
@@ -3015,10 +3019,86 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+})();
+
+
+
+/* === CENTRAL APP VERSION CONTROL === */
+(function(){
+  const escCentral=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const titleText=()=>APP_FULL_TITLE();
+  const setCentralTitle=()=>{
+    document.title=titleText();
+    const appTitle=document.querySelector('#app .top .title');
+    if(appTitle) appTitle.textContent=titleText();
+    const startTitle=document.querySelector('#start h1');
+    if(startTitle) startTitle.textContent=titleText();
+  };
+
+  if(typeof Store!=='undefined'){
+    Store.key=APP_STORAGE_KEY;
+    Store.save=s=>localStorage.setItem(APP_STORAGE_KEY,JSON.stringify(s));
+    Store.load=()=>{
+      try{
+        const legacyKeys=['lm_core_rebuild_current','lm_core_rebuild_v43_material_recycle','lm_core_rebuild_v42_mapbook_fix','lm_core_rebuild_v41_mapbook_rules','lm_core_rebuild_v40_refresh_fix','lm_core_rebuild_v37_clean','lm_core_rebuild_v33_equipped_guard','lm_core_rebuild_v16_official_balance','lm_core_rebuild_v15','lm_all_in_one_v1'];
+        for(const k of legacyKeys){const raw=localStorage.getItem(k); if(raw) return JSON.parse(raw);}
+        return null;
+      }catch{return null;}
+    };
+    Store.clear=()=>{
+      ['lm_core_rebuild_current','lm_core_rebuild_v43_material_recycle','lm_core_rebuild_v42_mapbook_fix','lm_core_rebuild_v41_mapbook_rules','lm_core_rebuild_v40_refresh_fix','lm_core_rebuild_v37_clean','lm_core_rebuild_v33_equipped_guard','lm_core_rebuild_v16_official_balance','lm_core_rebuild_v15','lm_all_in_one_v1'].forEach(k=>localStorage.removeItem(k));
+    };
+  }
+
+  if(typeof Game!=='undefined'){
+    const oldBase=Game.base?.bind(Game);
+    if(oldBase){Game.base=function(cls){const s=oldBase(cls); if(s) s.version=APP_VERSION; return s;};}
+    const oldEnsure=Game.ensure?.bind(Game);
+    if(oldEnsure){Game.ensure=function(){oldEnsure(); if(this.s) this.s.version=APP_VERSION;};}
+    const oldRenderStatus=Game.renderStatus?.bind(Game);
+    if(oldRenderStatus){Game.renderStatus=function(){oldRenderStatus(); setCentralTitle();};}
+    const oldEnter=Game.enter?.bind(Game);
+    if(oldEnter){Game.enter=function(){oldEnter(); setCentralTitle();};}
+    const oldExport=Game.export?.bind(Game);
+    Game.export=function(){
+      const blob=new Blob([JSON.stringify(this.s,null,2)],{type:'application/json'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='lineageM_core_rebuild_save.json';
+      a.click();
+    };
+
+    Game.viewDash=function(){
+      const st=this.total();
+      return `<h3 class="title">總覽</h3><div class="grid cards"><div class="card"><b>戰力</b><div class="big gold">${this.fmt(st.dmg*12+this.s.lv*30+(10-st.ac)*8+st.dr*20)}</div></div><div class="card"><b>今日資源</b><p>副本 ${this.s.daily.dungeon}｜世界王 ${this.s.daily.boss}｜TJ ${this.s.daily.tj}</p><button data-act="mail">領取每日信箱</button> <button data-act="tj" class="gold">TJ補償</button></div><div class="card"><b>角色狀態</b><p>等級 Lv.${this.s.lv}｜地圖 ${escCentral(this.map().name)}</p><p>變身 ${this.s.active.transform?escCentral(this.card(this.s.active.transform)?.name):'未啟用'}｜娃娃 ${this.s.active.doll?escCentral(this.card(this.s.active.doll)?.name):'未召喚'}</p></div></div>`;
+    };
+
+    Game.viewSettings=function(){
+      const s=this.s.settings;
+      return `<h3 class="title">自動設定</h3><label class="item row">HP低於%自動喝水 <input data-set="hpLimit" type="number" min="1" max="99" value="${s.hpLimit}"></label><label class="item row">啟用自動喝水 <input data-set="autoPotion" type="checkbox" ${s.autoPotion?'checked':''}></label><label class="item row">自動買水 <input data-set="autoBuy" type="checkbox" ${s.autoBuy?'checked':''}></label><label class="item row">自動挑戰野外Boss <input data-set="autoBoss" type="checkbox" ${s.autoBoss?'checked':''}></label><label class="item row">自動販售一般裝備 <input data-set="autoSell" type="checkbox" ${s.autoSell?'checked':''}></label>`;
+    };
+
+    Game.viewHunt=function(){
+      const maps=(DB.maps||[]).map(m=>`<div class="card item"><b>${escCentral(m.name)}</b> Lv.${m.min}-${m.max}<br><span class="muted">怪物：${(m.mons||[]).map(escCentral).join('、')}｜掉落：${(m.drops||[]).map(id=>escCentral(this.def(id)?.name||id)).join('、')}</span></div>`).join('');
+      return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">多怪 / 範圍技能</b><br><span class="muted">每次遭遇會依角色等級出現多隻怪物；普攻鎖定主目標，範圍技能可同時攻擊多隻怪物。</span></div>${maps}`;
+    };
+
+    Game.viewAudit=function(){
+      const items=Object.values(DB.item||{});
+      const maps=DB.maps||[];
+      const skills=Object.keys(DB.skills||{}).length;
+      const miss=maps.flatMap(m=>(m.drops||[]).filter(id=>!DB.item[id]).map(id=>m.name+':'+id));
+      const monsterCount=new Set(maps.flatMap(m=>m.mons||[])).size;
+      return `<h3 class="title">完整度檢查</h3><div class="grid cards"><div class="card"><b>職業</b><div class="big gold">${Object.keys(DB.classes||{}).length}</div></div><div class="card"><b>地圖</b><div class="big gold">${maps.length}</div></div><div class="card"><b>怪物</b><div class="big gold">${monsterCount}</div></div><div class="card"><b>裝備/道具</b><div class="big gold">${items.length}</div></div><div class="card"><b>變身</b><div class="big gold">${Object.values(DB.cards||{}).filter(c=>c.kind==='transform').length}</div></div><div class="card"><b>魔法娃娃</b><div class="big gold">${Object.values(DB.cards||{}).filter(c=>c.kind==='doll').length}</div></div><div class="card"><b>技能</b><div class="big gold">${skills}</div><span class="muted">技能書 ${items.filter(x=>x.type==='book').length}</span></div></div><div class="card"><b>${miss.length?'資料關聯仍有缺漏':'資料關聯檢查通過'}</b><br><span class="muted">掉落表缺失：${miss.length?miss.map(escCentral).join('、'):'無'}</span></div>`;
+    };
+  }
+
+  window.addEventListener('DOMContentLoaded',setCentralTitle);
+  setCentralTitle();
 })();
 
 </script>
@@ -3035,7 +3115,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number(v)||0));
 
   function setTitle(){
-    document.title='天堂M Core Rebuild V31｜地圖圖鑑重製版';
+    document.title=APP_FULL_TITLE();
     const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V31';
     const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V31';
     const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V31 地圖圖鑑重製：探索、怪物登錄、Boss登錄、地圖完成度、收藏獎勵與紅點提示。';
@@ -3352,7 +3432,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return oldAudit.call(this)+`<div class="card"><b class="gold">V32 合成檢查</b><br><span class="muted">合成判斷使用 duplicate = 持有數 - 1；可合成次數 = floor(全部重複卡 / 4)。</span></div>`;
   };
 
-  document.title='天堂M Core Rebuild V33｜卡片合成修正版';
+  document.title=APP_FULL_TITLE();
 })();
 
 
@@ -3477,7 +3557,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     return oldAudit.call(this)+`<div class="card"><b class="gold">V33 安全檢查</b><br><span class="muted">販售/分解流程會先檢查 equip 欄位中的 item key，確認不是穿戴中才允許消耗。</span></div>`;
   };
 
-  document.title='天堂M Core Rebuild V33｜已裝備道具販售保護版';
+  document.title=APP_FULL_TITLE();
 })();
 
 
@@ -3497,7 +3577,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const EQUIP_TYPES=['weapon'].concat(ARMOR_TYPES,ACC_TYPES);
   const TYPE_NAME={weapon:'武器',helmet:'頭盔',tshirt:'內衣',armor:'盔甲',cloak:'斗篷',gloves:'手套',boots:'鞋子',amulet:'項鍊',belt:'腰帶',earring:'耳環',ring:'戒指',rune:'符石',seal:'印章',relic:'聖物',book:'技能書',material:'材料',scroll:'卷軸',potion:'藥水',box:'箱子',buff:'道具',elixir:'萬能藥'};
 
-  document.title='天堂M Core Rebuild V37｜掉落與製作職業標示版';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V37：怪物掉落物品優化、製作道具職業可用性顯示、版本號統一更新。';
@@ -3675,7 +3755,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const TODAY=()=>new Date().toISOString().slice(0,10);
   const DUNGEON_MAX=20, BOSS_MAX=10, GUILD_DUNGEON_MAX=10, GUILD_BOSS_MAX=5, TJ_MAX=3;
 
-  document.title='天堂M Core Rebuild V37';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜天堂M核心模擬版';
@@ -4032,10 +4112,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -4253,7 +4333,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   function putItem(id,o){DB.item[id]=Object.assign({id,type:'weapon',rank:'R',safe:6,price:1000},DB.item[id]||{},o,{id});}
   function recipe(id,req,adena,note){if(DB.item[id]){DB.recipes=DB.recipes||{};DB.recipes[id]={id,req,adena,note};}}
 
-  document.title='天堂M Core Rebuild V37';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V37';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜離線存檔｜V37：技能書掉落補全、槍手武器修復、地圖掉落搜尋支援技能書。';
@@ -4468,7 +4548,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const safeE=(typeof E==='function')?E:(s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])));
   const uniq=arr=>Array.from(new Set((arr||[]).filter(Boolean)));
 
-  document.title='天堂M Core Rebuild V37';
+  document.title=APP_FULL_TITLE();
   const mainTitle=document.querySelector('#app .top .title');
   if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V37';
   const startTitle=document.querySelector('#start h1');
@@ -4579,7 +4659,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   };
   const statLine=o=>Object.entries(o||{}).map(([k,v])=>`${k}${v>=0?'+':''}${v}`).join('、')||'無';
 
-  document.title='天堂M Core Rebuild V37';
+  document.title=APP_FULL_TITLE();
   const setText=(sel,txt)=>{const el=document.querySelector(sel); if(el) el.textContent=txt;};
   setText('#start h1','天堂M Core Rebuild V37');
   const startDesc=document.querySelector('#start p');
@@ -4709,7 +4789,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const dropsOf=map=>uniq([...(map?.drops||[]),...(map?.materialDrops||[])]).filter(id=>DB.item&&DB.item[id]);
   const bossPattern=/王|boss|BOSS|龍|安塔|巴拉|法利|林德|吉爾|巴風|巴風特|死亡騎士|巫妖|木乃伊|吸血鬼|巨蟻|不死鳥|惡魔|克特|賽尼斯|侍徒|祭司|守護|首領|隊長|君主|將軍/i;
 
-  document.title='天堂M Core Rebuild V40';
+  document.title=APP_FULL_TITLE();
   const setText=(sel,txt)=>{const el=document.querySelector(sel); if(el) el.textContent=txt;};
   setText('#start h1','天堂M Core Rebuild V40');
   const mainTitle=document.querySelector('#app .top .title'); if(mainTitle) mainTitle.textContent='天堂M Core Rebuild V40';
@@ -5366,10 +5446,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -5519,7 +5599,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     };
   }
 
-  document.title='天堂M Core Rebuild V40｜血盟副本修正版';
+  document.title=APP_FULL_TITLE();
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V40';
 })();
 
@@ -5706,10 +5786,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -5749,7 +5829,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   }
 
   Game.versionLabel='V41';
-  document.title='天堂M Core Rebuild V41｜地圖圖鑑規則修正版';
+  document.title=APP_FULL_TITLE();
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V41';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V41';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V41 地圖圖鑑規則修正版。';
@@ -6146,10 +6226,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -6189,7 +6269,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   }
 
   Game.versionLabel='V42';
-  document.title='天堂M Core Rebuild V42｜地圖圖鑑分類修正版';
+  document.title=APP_FULL_TITLE();
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V42';
   const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V42';
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V42 地圖圖鑑怪物與 Boss 分類修正版。';
@@ -6335,7 +6415,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   DB.version='core_rebuild_v43_material_recycle';
   DB.versionHistory={current:APP_VERSION,previous:['V15.1','V16','V17','V18','V19','V21','V22','V23','V24','V25','V27','V28','V29','V30','V31','V32','V33','V37','V40','V40.1','V40.2','V41','V42'],note:'V43 consolidates public labels and adds optimized material disassembly.'};
 
-  document.title='天堂M Core Rebuild V43｜分解材料優化版';
+  document.title=APP_FULL_TITLE();
   const setText=(sel,text)=>{const el=document.querySelector(sel); if(el) el.textContent=text;};
   setText('#start h1','天堂M Core Rebuild V43');
   setText('#app .top .title','天堂M Core Rebuild V43｜分解材料優化版');
@@ -6486,7 +6566,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   };
 
   window.addEventListener('DOMContentLoaded',()=>{
-    document.title='天堂M Core Rebuild V43｜分解材料優化版';
+    document.title=APP_FULL_TITLE();
     setText('#start h1','天堂M Core Rebuild V43');
     setText('#app .top .title','天堂M Core Rebuild V43｜分解材料優化版');
   });
@@ -6676,10 +6756,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -6905,10 +6985,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.renderStatus=function(){
     oldRenderStatus.call(this); ensureCss();
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';
-    document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.3'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
 })();
 
 
@@ -7029,8 +7109,8 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldAudit=Game.viewAudit;
   Game.viewAudit=function(){ return oldAudit.call(this)+`<div class="card"><b class="gold">V43.3 收藏功能檢查</b><br><span class="muted">收藏總數：${(DB.codex||[]).length}｜按鈕模式已與地圖、怪物、BOSS圖鑑統一。</span></div>`; };
   const oldRenderStatus=Game.renderStatus;
-  Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; };
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.3'; const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
+  Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; document.title=APP_FULL_TITLE(); };
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
 })();
 
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
@@ -7216,10 +7296,10 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
     const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
-    document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent='天堂M Core Rebuild V43.4';const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -7236,7 +7316,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const bossNameSet=()=>new Set((DB.bosses||[]).map(b=>String(b.name||'')));
   const bossRe=/王|Boss|BOSS|首領|君主|巨大|飛龍王|安塔|巴拉|法利|林德|吉爾|巴風|死亡騎士$|巫妖$|木乃伊王|吸血鬼$|巨蟻女皇|不死鳥|惡魔王|克特|賽尼斯|冰之女王|騎士范德|反王肯恩|海露拜/i;
   const itemName=id=>(DB.item&&DB.item[id]&&DB.item[id].name)||id;
-  const oldTitle='天堂M Core Rebuild V43.5｜多怪與範圍技能修正版';
+  const oldTitle=APP_FULL_TITLE();
 
   function ensureCss(){
     if(document.getElementById('v435MultiMobCss')) return;
@@ -7431,7 +7511,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     const totalKills=Object.entries(this.s.codexMon||{}).filter(([n])=>!isBossName(n)).reduce((a,[,b])=>a+(Number(b)||0),0);
     const rows=list.map(n=>{const k=this.s.codexMon?.[n]||0,pct=Math.min(100,Math.floor(k)),claimed=!!this.s.claimed?.['mon_'+n],can=k>=100&&!claimed,maps=monsterMaps(n),first=maps[0]; const drops=monsterDrops(n).map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>'; const mapPills=maps.slice(0,8).map(m=>`<span class="pill ${m.id===this.s.map?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>'; return `<div class="codex-v435-card ${claimed?'done':can?'ready':k>0?'active':''}"><div class="row"><div><b class="gold">${esc(n)}</b> ${claimed?'<span class="pill green">已完成</span>':can?'<span class="pill red">可領獎</span>':k>0?'<span class="pill blue">已登錄</span>':'<span class="pill muted">未登錄</span>'}<br><span class="muted">分類：一般怪物｜擊殺 ${num(k)}/100｜主要地圖：${first?esc(first.name):'無'}</span></div><div class="codex-v435-actions"><button data-act="goMonsterMapV435" data-arg="${esc(n)}" ${first?'':'disabled'}>前往</button><button data-act="targetMonsterV435" data-arg="${esc(n)}" ${first?'':'disabled'}>指定目標</button><button data-act="claimMonBook" data-arg="${esc(n)}" ${can?'':'disabled'}>領取</button></div></div><div class="codex-v435-progress"><span style="width:${pct}%"></span><b>${pct}%</b></div><div class="codex-v435-sub"><span>擊殺 ${num(k)}</span><span>出沒地圖 ${maps.length}</span><span>掉落 ${monsterDrops(n).length}</span></div><details><summary>地圖 / 掉落</summary><div class="drop-box"><b>出沒地圖</b>${mapPills}</div><div class="drop-box"><b>掉落</b>${drops}</div></details></div>`;}).join('');
     const current=(this.map().mons||[]).filter(n=>!isBossName(n)).length;
-    return this.hero('怪物圖鑑 V43.5','已修復分類異常：Boss 不再混入怪物圖鑑；舊存檔誤分類擊殺會自動轉回 Boss 圖鑑。')+this.statCards([['一般怪物',all.length,'gold'],['目前地圖怪物',current,'cyan'],['可領獎',ready,'red'],['已完成',done+'/'+all.length,'green'],['總擊殺',num(totalKills),'blue']])+`<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="monsterBookFilterV435" data-arg="${id}">${n}</button>`).join('')}</div><div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="monsterBookSortV435" data-arg="${id}">排序：${n}</button>`).join('')}</div><div class="page-list">${rows||'<p class="muted">沒有符合條件的怪物</p>'}</div>`;
+    return this.hero('怪物圖鑑','已修復分類異常：Boss 不再混入怪物圖鑑；舊存檔誤分類擊殺會自動轉回 Boss 圖鑑。')+this.statCards([['一般怪物',all.length,'gold'],['目前地圖怪物',current,'cyan'],['可領獎',ready,'red'],['已完成',done+'/'+all.length,'green'],['總擊殺',num(totalKills),'blue']])+`<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="monsterBookFilterV435" data-arg="${id}">${n}</button>`).join('')}</div><div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="monsterBookSortV435" data-arg="${id}">排序：${n}</button>`).join('')}</div><div class="page-list">${rows||'<p class="muted">沒有符合條件的怪物</p>'}</div>`;
   };
 
   const oldRenderStatus=Game.renderStatus.bind(Game);
@@ -7453,13 +7533,13 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
   const oldViewHunt=Game.viewHunt.bind(Game);
   Game.viewHunt=function(){
-    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.5 多怪 / 範圍技能</b><br><span class="muted">現在每次遭遇會依角色等級出現 1~5 隻怪物。普攻鎖定主目標；部分技能已實裝範圍判定，可同時攻擊多隻怪物。怪物圖鑑分類已排除 Boss。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">多怪 / 範圍技能</b><br><span class="muted">現在每次遭遇會依角色等級出現 1~5 隻怪物。普攻鎖定主目標；部分技能已實裝範圍判定，可同時攻擊多隻怪物。怪物圖鑑分類已排除 Boss。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
   };
   const oldViewDash=Game.viewDash.bind(Game);
-  Game.viewDash=function(){return oldViewDash()+`<div class="card"><b class="gold">V43.5 戰鬥核心</b><br><span class="muted">多怪遭遇已實裝｜範圍技能已生效｜怪物圖鑑分類已修復。</span></div>`;};
+  Game.viewDash=function(){return oldViewDash()+`<div class="card"><b class="gold">戰鬥核心</b><br><span class="muted">多怪遭遇已實裝｜範圍技能已生效｜怪物圖鑑分類已修復。</span></div>`;};
   const oldAudit=Game.viewAudit.bind(Game);
-  Game.viewAudit=function(){return oldAudit()+`<div class="card"><b class="gold">V43.5 檢查</b><br><span class="muted">一般怪物：${normalMonsterNames().length}｜Boss：${bossNames().length}｜多怪上限：5｜範圍技能判定：已啟用。</span></div>`;};
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=oldTitle; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.5'; const t=document.querySelector('#app .top .title'); if(t) t.textContent=oldTitle;});
+  Game.viewAudit=function(){return oldAudit()+`<div class="card"><b class="gold">檢查</b><br><span class="muted">一般怪物：${normalMonsterNames().length}｜Boss：${bossNames().length}｜多怪上限：5｜範圍技能判定：已啟用。</span></div>`;};
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=oldTitle; const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent=oldTitle;});
 })();
 </script>
 
