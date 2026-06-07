@@ -8,12 +8,12 @@
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
 </head><body>
-<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML。</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
+<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
 <div id="classModal" class="modal hide"><div class="panel modal-card"><h2 class="title">選擇職業</h2><div id="classList" class="grid classes"></div><div class="row" style="margin-top:12px"><button id="backBtn">返回</button><button id="startBtn" class="green" disabled>開始遊戲</button></div></div></div>
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
 'use strict';
-const APP_VERSION='V44.3';
+const APP_VERSION='V44.4';
 const APP_STORAGE_KEY='lm_core_rebuild_current';
 const APP_TITLE='天堂M Core Rebuild';
 const APP_FULL_TITLE=()=>`${APP_TITLE} ${APP_VERSION}`;
@@ -8129,6 +8129,94 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   window.LM_CORE_VERSION=V;
   if(DB.versionHistory) DB.versionHistory.current=V;
   window.addEventListener('DOMContentLoaded',setTitle);
+})();
+
+
+
+/* === V44.4 MONSTER/BOSS BOOK SAME AS MAP BOOK === */
+(function(){
+  if(!window.Game||!window.DB) return;
+  const V='V44.4';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const pct=(v,max)=>Math.max(0,Math.min(100,Math.floor((Number(v)||0)/(Number(max)||1)*100)));
+  const title=()=>`${APP_TITLE} ${V}`;
+  const bossExact=()=>new Set((DB.bosses||[]).map(b=>String(b.name)));
+  const bossRe=/巴風特|死亡騎士|巫妖|木乃伊王|安塔瑞斯|法利昂|巴拉卡斯|林德拜爾|吉爾塔斯|巨大飛龍|血盟巴風特|血盟死亡騎士|血盟安塔瑞斯|首領|BOSS|Boss|boss|王$/;
+  const isBossName=n=>bossExact().has(String(n))||bossRe.test(String(n||''));
+  const uniq=a=>Array.from(new Set((a||[]).filter(Boolean)));
+  const itemName=id=>DB.item?.[id]?.name||id;
+  const dropsOf=m=>uniq([...(m?.drops||[]),...(m?.materialDrops||[]),...(m?.skillBookDrops||[])]);
+  const monsterNames=()=>uniq((DB.maps||[]).flatMap(m=>(m.mons||[]).filter(n=>!isBossName(n)))).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  const bossNames=()=>uniq([...(DB.bosses||[]).map(b=>b.name),...(DB.guildBossV23||[]).map(b=>b.name),...(DB.maps||[]).flatMap(m=>(m.mons||[]).filter(isBossName))]);
+  const monsterMaps=n=>(DB.maps||[]).filter(m=>(m.mons||[]).includes(n));
+  const bossMaps=n=>(DB.maps||[]).filter(m=>(m.mons||[]).includes(n)||(m.bosses||[]).includes(n));
+  const monsterDrops=n=>uniq(monsterMaps(n).flatMap(dropsOf));
+  const bossDrops=n=>uniq(bossMaps(n).flatMap(dropsOf));
+  const setTitle=()=>{document.title=title(); const h=document.querySelector('#start h1'); if(h)h.textContent=title(); const t=document.querySelector('#app .top .title'); if(t)t.textContent=title();};
+  const ensureCss=()=>{
+    if(document.getElementById('v444BookCss')) return;
+    const st=document.createElement('style'); st.id='v444BookCss'; st.textContent=`
+    .book-v444-toolbar{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.book-v444-grid{display:grid;gap:10px}.book-v444-card{background:#081120;border:1px solid #26364e;border-radius:13px;padding:12px}.book-v444-card.ready{border-color:#facc15;background:#16180d}.book-v444-card.done{border-color:#22c55e}.book-v444-card.boss{border-color:#4c1d1d}.book-v444-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}.book-v444-progress{height:18px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:8px 0}.book-v444-progress span{display:block;height:100%;background:linear-gradient(90deg,#854d0e,#facc15)}.book-v444-progress b{position:absolute;inset:0;text-align:center;font-size:12px;line-height:16px;text-shadow:1px 1px 2px #000}.book-v444-sub{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px}.book-v444-detail{margin-top:8px}.book-v444-detail summary{cursor:pointer;color:var(--gold)}.book-v444-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.book-v444-pills b{width:100%;color:var(--muted)}
+    `; document.head.appendChild(st);
+  };
+  const hero=(name,desc)=>Game.hero?Game.hero(name,desc):`<h3 class="title">${esc(name)}</h3><div class="card"><span class="muted">${esc(desc)}</span></div>`;
+  const stats=(arr)=>Game.statCards?Game.statCards(arr):`<div class="grid cards">${arr.map(x=>`<div class="card"><b>${esc(x[0])}</b><div class="big ${x[2]||'gold'}">${esc(x[1])}</div></div>`).join('')}</div>`;
+  const oldEnsure=Game.ensure&&Game.ensure.bind(Game);
+  Game.ensure=function(){
+    if(oldEnsure) oldEnsure();
+    if(!this.s) return;
+    this.s.version=V; this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{}; this.s.claimed=this.s.claimed||{}; this.s.codexFilter=this.s.codexFilter||{}; this.s.codexSort=this.s.codexSort||{};
+    Object.keys(this.s.codexMon).forEach(n=>{ if(isBossName(n)){ this.s.codexBoss[n]=(this.s.codexBoss[n]||0)+(Number(this.s.codexMon[n])||0); delete this.s.codexMon[n]; }});
+  };
+  function bookCard({name,kind,kills,goal,maps,drops,claimed,can,bossId}){
+    const p=pct(kills,goal), first=maps[0];
+    const mapPills=maps.map(m=>`<span class="pill ${Game.s?.map===m.id?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>';
+    const dropPills=drops.map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>';
+    const status=claimed?'<span class="pill green">已完成</span>':can?'<span class="pill red">可領獎</span>':kills>0?'<span class="pill blue">已登錄</span>':'<span class="pill muted">未登錄</span>';
+    const cls=`book-v444-card ${kind==='boss'?'boss ':''}${claimed?'done':can?'ready':kills>0?'active':''}`;
+    const gotoAct=kind==='boss'?'goBossBookMapV444':'goMonsterBookMapV444';
+    const targetAct=kind==='boss'?'targetBossBookV444':'targetMonsterBookV444';
+    const claimAct=kind==='boss'?'claimBossBook':'claimMonBook';
+    const challenge=kind==='boss'&&bossId?`<button data-act="boss" data-arg="${esc(bossId)}">討伐</button>`:'';
+    return `<div class="${cls}"><div class="row"><div><b class="${kind==='boss'?'red':'gold'}">${esc(name)}</b> ${status}<br><span class="muted">分類：${kind==='boss'?'Boss':'一般怪物'}｜${kind==='boss'?'討伐':'擊殺'} ${num(kills)}/${goal}｜主要地圖：${first?esc(first.name):'無'}</span></div><div class="book-v444-actions"><button data-act="${gotoAct}" data-arg="${esc(name)}" ${first?'':'disabled'}>前往</button><button data-act="${targetAct}" data-arg="${esc(name)}" ${first?'':'disabled'}>指定目標</button>${challenge}<button data-act="${claimAct}" data-arg="${esc(name)}" ${can?'':'disabled'}>領取</button></div></div><div class="book-v444-progress"><span style="width:${p}%"></span><b>${p}%</b></div><div class="book-v444-sub"><span>${kind==='boss'?'討伐':'擊殺'} ${num(kills)}</span><span>地圖 ${maps.length}</span><span>掉落 ${drops.length}</span></div><details class="book-v444-detail"><summary>地圖 / 掉落</summary><div class="book-v444-pills"><b>出沒地圖</b>${mapPills}</div><div class="book-v444-pills"><b>掉落</b>${dropPills}</div></details></div>`;
+  }
+  function renderBook(kind){
+    Game.ensure(); ensureCss();
+    const isBoss=kind==='boss', goal=isBoss?3:100, names=isBoss?bossNames():monsterNames(), store=isBoss?Game.s.codexBoss:Game.s.codexMon;
+    const filter=Game.s.codexFilter[kind]||'all', sort=Game.s.codexSort[kind]||'progress';
+    let list=names.filter(n=>{const k=Number(store[n]||0), claimed=!!Game.s.claimed[(isBoss?'boss_':'mon_')+n], ready=k>=goal&&!claimed; if(filter==='current')return (isBoss?bossMaps(n):monsterMaps(n)).some(m=>m.id===Game.s.map); if(filter==='unseen')return k<=0; if(filter==='ready')return ready; if(filter==='claimed')return claimed; return true;});
+    list.sort((a,b)=>{const ka=Number(store[a]||0),kb=Number(store[b]||0); if(sort==='kills')return kb-ka; if(sort==='level')return (((isBoss?bossMaps(a):monsterMaps(a))[0]?.min)||999)-(((isBoss?bossMaps(b):monsterMaps(b))[0]?.min)||999); if(sort==='name')return String(a).localeCompare(String(b),'zh-Hant'); return Math.min(goal,kb)-Math.min(goal,ka);});
+    const ready=names.filter(n=>Number(store[n]||0)>=goal&&!Game.s.claimed[(isBoss?'boss_':'mon_')+n]).length;
+    const done=names.filter(n=>Number(store[n]||0)>=goal||Game.s.claimed[(isBoss?'boss_':'mon_')+n]).length;
+    const total=Object.entries(store).filter(([n])=>isBoss?isBossName(n):!isBossName(n)).reduce((a,[,v])=>a+(Number(v)||0),0);
+    const filters=[['all','全部'],['current','目前地圖'],['unseen','未登錄'],['ready','可領獎'],['claimed','已完成']];
+    const sorts=[['progress','進度'],['kills',isBoss?'討伐':'擊殺'],['level','地圖等級'],['name','名稱']];
+    const rows=list.map(n=>bookCard({name:n,kind:isBoss?'boss':'monster',kills:Number(store[n]||0),goal,maps:isBoss?bossMaps(n):monsterMaps(n),drops:isBoss?bossDrops(n):monsterDrops(n),claimed:!!Game.s.claimed[(isBoss?'boss_':'mon_')+n],can:Number(store[n]||0)>=goal&&!Game.s.claimed[(isBoss?'boss_':'mon_')+n],bossId:(DB.bosses||[]).find(b=>b.name===n)?.id})).join('');
+    const titleText=isBoss?'BOSS圖鑑':'怪物圖鑑';
+    const desc=isBoss?'與地圖圖鑑一致：Boss 獨立分類、進度、前往、指定目標、討伐與領取。':'與地圖圖鑑一致：一般怪物獨立分類、進度、前往、指定目標與領取；Boss 不混入。';
+    return hero(titleText,desc)+stats([[isBoss?'Boss種類':'怪物種類',names.length,isBoss?'red':'gold'],['目前地圖',Game.map().name,'blue'],['可領獎',ready,'red'],['已完成',done+'/'+names.length,'green'],[isBoss?'總討伐':'總擊殺',num(total),'cyan']])+`<div class="book-v444-toolbar">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="bookFilterV444" data-arg="${kind}|${id}">${n}</button>`).join('')}</div><div class="book-v444-toolbar">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="bookSortV444" data-arg="${kind}|${id}">排序：${n}</button>`).join('')}</div><div class="book-v444-grid">${rows||'<p class="muted">沒有符合條件的資料</p>'}</div>`;
+  }
+  Game.viewMonsterBookV23=function(){return renderBook('monster');};
+  Game.viewMonsterBook=Game.viewMonsterBookV23;
+  Game.viewBossBookV23=function(){return renderBook('boss');};
+  Game.viewBossBook=Game.viewBossBookV23;
+  const oldAction=Game.action&&Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    this.ensure();
+    if(a==='bookFilterV444'){const [k,v]=String(arg||'').split('|');this.s.codexFilter[k]=v||'all';this.renderTab();return;}
+    if(a==='bookSortV444'){const [k,v]=String(arg||'').split('|');this.s.codexSort[k]=v||'progress';this.renderTab();return;}
+    if(a==='goMonsterBookMapV444'){const m=monsterMaps(arg)[0]; if(m){this.s.map=m.id; this.s.mobs=[]; this.s.mon=null; this.render();} return;}
+    if(a==='targetMonsterBookV444'){const m=monsterMaps(arg)[0]; if(m){this.s.map=m.id; if(this.spawn)this.spawn(arg); this.log('怪物圖鑑指定目標：'+arg,'green'); this.render();} return;}
+    if(a==='goBossBookMapV444'){const m=bossMaps(arg)[0]; if(m){this.s.map=m.id; this.s.mobs=[]; this.s.mon=null; this.render();} return;}
+    if(a==='targetBossBookV444'){const m=bossMaps(arg)[0]; if(m){this.s.map=m.id; if(this.spawn)this.spawn(arg); this.log('BOSS圖鑑指定目標：'+arg,'green'); this.render();} return;}
+    if(a==='claimMonBook'){const n=String(arg||''), key='mon_'+n; if((this.s.codexMon[n]||0)>=100&&!this.s.claimed[key]){this.s.claimed[key]=1; this.addItem('m18_powder',50); this.addItem('v23_event_coin',10); this.log('怪物圖鑑完成：'+n,'green'); this.render();} return;}
+    if(a==='claimBossBook'){const n=String(arg||''), key='boss_'+n; if((this.s.codexBoss[n]||0)>=3&&!this.s.claimed[key]){this.s.claimed[key]=1; this.addItem('v23_tj_coin',1); this.addItem('v23_boss_token',1); this.log('BOSS圖鑑完成：'+n,'green'); this.render();} return;}
+    return oldAction?oldAction(a,arg,b):null;
+  };
+  const oldRenderStatus=Game.renderStatus&&Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){ if(oldRenderStatus) oldRenderStatus(); setTitle(); };
+  window.LM_CORE_VERSION=V; if(DB.versionHistory) DB.versionHistory.current=V; window.addEventListener('DOMContentLoaded',()=>{ensureCss();setTitle();});
 })();
 
 </script>
