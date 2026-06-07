@@ -8,12 +8,12 @@
 :root{--bg:#05070a;--panel:#101827;--panel2:#172235;--line:#334155;--text:#e5eef9;--muted:#94a3b8;--gold:#facc15;--green:#22c55e;--red:#ef4444;--blue:#60a5fa;--purple:#c084fc;--orange:#fb923c;--cyan:#22d3ee}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#182943 0,#05070a 45%,#02040a 100%);color:var(--text);font-family:"Microsoft JhengHei",system-ui,sans-serif;font-size:14px;user-select:none}.hide{display:none!important}button,input,select{font:inherit;color:var(--text);background:#1d293b;border:1px solid #475569;border-radius:9px;padding:7px 10px}button{cursor:pointer}button:hover{background:#30435f}button:disabled{opacity:.45}.app{height:100vh;display:flex;flex-direction:column;gap:10px;padding:10px}.panel{background:linear-gradient(180deg,rgba(20,31,49,.96),rgba(8,13,23,.96));border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.28)}.top,.row{display:flex;align-items:center;justify-content:space-between;gap:8px}.main{flex:1;min-height:0;display:grid;grid-template-columns:330px 1fr 380px;gap:10px}.col{display:flex;flex-direction:column;gap:10px;min-height:0}.scroll{overflow:auto}.title{font-weight:800;color:var(--gold)}.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.green{color:#86efac}.red{color:#fca5a5}.blue{color:#93c5fd}.purple{color:var(--purple)}.orange{color:var(--orange)}.cyan{color:var(--cyan)}.grid{display:grid;gap:10px}.cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.stats{grid-template-columns:repeat(2,1fr);gap:6px}.card,.stat{background:#0a1221;border:1px solid #26364e;border-radius:12px;padding:10px}.bar{height:19px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .2s}.bar span{position:absolute;inset:0;text-align:center;line-height:17px;font-size:12px;text-shadow:1px 1px 2px #000;z-index:2;pointer-events:none}.bar i{position:relative;z-index:1}.hp{background:linear-gradient(90deg,#7f1d1d,#ef4444)}.mp{background:linear-gradient(90deg,#1e3a8a,#60a5fa)}.exp{background:linear-gradient(90deg,#854d0e,#facc15)}.leaf{background:linear-gradient(90deg,#065f46,#34d399)}.tabs{display:flex;gap:6px;flex-wrap:wrap}.tab.on{border-color:var(--gold);color:var(--gold);background:#2b2512}.item{border-bottom:1px dashed #334155;padding:8px 0}.pill{display:inline-block;border:1px solid #475569;border-radius:99px;background:#0d1728;padding:3px 8px;margin:2px;font-size:12px}.modal{position:fixed;inset:0;background:rgba(0,0,0,.86);z-index:9;display:flex;align-items:center;justify-content:center;padding:14px}.modal-card{width:min(980px,96vw);max-height:92vh;overflow:auto}.classes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.class-card{text-align:left;min-height:115px}.class-card.on{border-color:var(--gold);background:#24314a}.r-N{color:#e5e7eb}.r-R{color:#4ade80}.r-SR{color:#60a5fa}.r-SSR{color:#c084fc}.r-L{color:#fb923c}.r-M{color:#f87171}.split{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}.log{font-size:13px;line-height:1.55}.mini{font-size:12px}.big{font-size:30px}@media(max-width:1180px){.app{height:auto}.main{grid-template-columns:1fr}.col{min-height:420px}.top{flex-direction:column;align-items:flex-start}}
 </style>
 </head><body>
-<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML｜離線存檔｜核心整合版：職業、地圖、怪物、掉落鑽石、裝備、強化、變身、娃娃、技能、技能書、副本、Boss、血盟、收藏、製作、商城、PVP、交易所、完整度檢查。</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
+<div id="start" class="modal"><div class="panel modal-card"><h1 class="title" style="font-size:40px;text-align:center">天堂M Core Rebuild</h1><p class="muted" style="text-align:center">單機HTML。</p><div class="grid"><button id="newBtn" class="green" style="font-size:22px;padding:14px">新冒險</button><button id="loadBtn" class="blue" style="font-size:22px;padding:14px">讀取存檔</button><button id="importBtn">匯入 JSON 存檔</button><input id="importFile" type="file" accept=".json,application/json" class="hide"></div></div></div>
 <div id="classModal" class="modal hide"><div class="panel modal-card"><h2 class="title">選擇職業</h2><div id="classList" class="grid classes"></div><div class="row" style="margin-top:12px"><button id="backBtn">返回</button><button id="startBtn" class="green" disabled>開始遊戲</button></div></div></div>
 <div id="app" class="app hide"><div class="panel top"><div><span class="title" style="font-size:22px">天堂M Core Rebuild｜核心整合版</span> <span id="subtitle" class="muted"></span></div><div class="row"><button id="saveBtn" class="blue">儲存</button><button id="exportBtn">匯出</button><button id="resetBtn" class="red">刪除</button></div></div><div class="main"><div class="col"><div class="panel"><div class="row"><b class="title">角色資訊</b><span id="className" class="gold"></span></div><div class="row"><span>Lv.<b id="lv">1</b></span><span>金幣 <b id="adena" class="gold">0</b></span><span>鑽石 <b id="diamond" class="cyan">0</b></span></div><div>HP<div class="bar"><i id="hpBar" class="hp"></i><span id="hpTxt"></span></div></div><div>MP<div class="bar"><i id="mpBar" class="mp"></i><span id="mpTxt"></span></div></div><div>EXP<div class="bar"><i id="expBar" class="exp"></i><span id="expTxt"></span></div></div><div>殷海薩葉子<div class="bar"><i id="leafBar" class="leaf"></i><span id="leafTxt"></span></div></div><div id="statBox" class="grid stats" style="margin-top:10px"></div></div><div class="panel scroll" style="flex:1"><b class="title">系統紀錄</b><div id="sysLog" class="log"></div></div></div><div class="col"><div class="panel"><div id="tabs" class="tabs"></div></div><div class="panel scroll" style="flex:1"><div id="content"></div></div></div><div class="col"><div class="panel"><div class="row"><b class="title">狩獵地圖</b><select id="mapSelect"></select></div><div id="mapInfo" class="muted"></div></div><div class="panel"><b class="title">目前目標</b><div id="monsterName" class="red" style="font-size:22px;margin:8px 0">尋找中</div><div class="bar"><i id="monBar" class="hp"></i><span id="monTxt"></span></div></div><div class="panel scroll" style="flex:1"><b class="title">戰鬥紀錄</b><div id="battleLog" class="log"></div></div></div></div></div>
 <script>
 'use strict';
-const APP_VERSION='V44.2';
+const APP_VERSION='V44.3';
 const APP_STORAGE_KEY='lm_core_rebuild_current';
 const APP_TITLE='天堂M Core Rebuild';
 const APP_FULL_TITLE=()=>`${APP_TITLE} ${APP_VERSION}`;
@@ -7911,5 +7911,225 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   if(DB.versionHistory) DB.versionHistory.current=V;
   window.addEventListener('DOMContentLoaded',setTitle);
 })();
+
+
+/* === V44.3 AUTO CORE RESTORE === */
+(function(){
+  const V='V44.3';
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const finite=(v,f=0)=>Number.isFinite(Number(v))?Number(v):f;
+  const now=()=>Date.now();
+  const rankOrder=['N','R','SR','SSR','L','M'];
+  const rankName=r=>(R&&R[r]?R[r][0]:r);
+  const isEquipType=t=>['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'].includes(t);
+  const stackTypes=new Set(['potion','scroll','material','box','book']);
+  const setTitle=()=>{
+    const title=`${APP_TITLE} ${V}`;
+    document.title=title;
+    const h=document.querySelector('#start h1'); if(h)h.textContent=title;
+    const t=document.querySelector('#app .top .title'); if(t)t.textContent=title;
+  };
+  const wornKeys=function(G){return new Set(Object.values(G.s?.equip||{}).filter(Boolean));};
+  const normalizeAuto=function(s){
+    s.settings=s.settings||{};
+    Object.assign(s.settings,{
+      autoPotion:s.settings.autoPotion!==false,
+      autoBuy:!!s.settings.autoBuy,
+      autoBoss:!!s.settings.autoBoss,
+      autoSell:!!s.settings.autoSell,
+      autoDisassemble:!!s.settings.autoDisassemble,
+      autoUseLeafBox:!!s.settings.autoUseLeafBox,
+      autoUseSkillBooks:!!s.settings.autoUseSkillBooks,
+      autoDailyDungeon:!!s.settings.autoDailyDungeon,
+      autoDailyBoss:!!s.settings.autoDailyBoss,
+      autoCleanBag:!!s.settings.autoCleanBag,
+      autoSaveSec:Math.max(10,Math.min(300,finite(s.settings.autoSaveSec,30)))
+    });
+    s.settings.autoDisRank='N';
+    if(!Array.isArray(s.settings.autoSkills)) s.settings.autoSkills=[];
+    s.autoRun=s.autoRun||{lastSave:0,lastClean:0,lastDis:0,lastLeaf:0,lastBook:0,lastDaily:0};
+    s.version=V;
+  };
+  const oldEnsure=Game.ensure&&Game.ensure.bind(Game);
+  Game.ensure=function(){ if(oldEnsure) oldEnsure(); if(this.s) normalizeAuto(this.s); };
+
+  Game.mergeStackables=function(verbose=true){
+    this.ensure();
+    const merged={}; let removed=0;
+    for(const k of Object.keys(this.s.inv||{})){
+      const it=this.inv(k), d=this.def(it?.id);
+      if(!it||!d) continue;
+      if(!stackTypes.has(d.type)) continue;
+      const nk=`${it.id}|${it.enchant||0}`;
+      if(!merged[nk]) merged[nk]={id:it.id,qty:0,enchant:it.enchant||0};
+      merged[nk].qty+=finite(it.qty,1);
+      if(k!==nk) removed++;
+      delete this.s.inv[k];
+    }
+    Object.assign(this.s.inv,merged);
+    if(verbose) this.log(`背包整理完成，可堆疊道具已合併 ${removed} 格`,'green');
+    return removed;
+  };
+
+  Game.collectDisassembleBatch=function(maxRank='N'){
+    this.ensure();
+    maxRank='N';
+    const worn=wornKeys(this), keys=[];
+    for(const k of Object.keys(this.s.inv||{})){
+      if(worn.has(k)) continue;
+      const it=this.inv(k), d=this.def(it?.id);
+      if(!it||!d||!isEquipType(d.type)) continue;
+      if((it.enchant||0)>=5) continue;
+      if((d.rank||'N')==='N') keys.push(k);
+    }
+    return {keys,maxRank};
+  };
+
+  Game.disassembleBatch=function(keys,verbose=true){
+    let count=0, powder=0, adena=0;
+    for(const k of keys||[]){
+      const it=this.inv(k), d=this.def(it?.id); if(!it||!d) continue;
+      const qty=Math.max(1,finite(it.qty,1));
+      const addPowder=Math.max(1,rankOrder.indexOf(d.rank||'N')+1)*qty;
+      powder+=addPowder; adena+=Math.floor((d.price||100)*0.08)*qty; count+=qty;
+      this.rem(k,qty);
+    }
+    if(powder>0) this.addItem('mat5',powder,0);
+    if(adena>0) this.s.adena+=adena;
+    if(verbose) this.log(`分解完成：裝備 ${count} 件，祝福粉末 +${powder}，金幣 +${this.fmt(adena)}`,'green');
+    return count;
+  };
+
+  Game.autoDisassembleByRank=function(){
+    const batch=this.collectDisassembleBatch('N');
+    if(!batch.keys.length) return 0;
+    return this.disassembleBatch(batch.keys,false);
+  };
+
+  Game.autoUseLeafBoxes=function(verbose=false){
+    this.ensure();
+    if((this.s.leaf||0)>=80) return 0;
+    let used=0;
+    for(const k of Object.keys(this.s.inv||{})){
+      const it=this.inv(k), d=this.def(it?.id);
+      if(!it||!d||it.id!=='leaf_box') continue;
+      while((this.s.leaf||0)<120 && this.inv(k)){
+        this.s.leaf=finite(this.s.leaf,0)+100;
+        this.rem(k,1); used++;
+      }
+      if((this.s.leaf||0)>=120) break;
+    }
+    if(used&&verbose) this.log(`自動補葉子：使用葉子補充箱 ×${used}`,'green');
+    return used;
+  };
+
+  Game.autoUseLearnableBooks=function(verbose=false){
+    this.ensure();
+    let used=0;
+    for(const k of Object.keys(this.s.inv||{})){
+      const it=this.inv(k), d=this.def(it?.id), sk=d&&DB.skills&&DB.skills[d.skill];
+      if(!it||!d||d.type!=='book'||!sk) continue;
+      if(sk.classId!==this.s.cls || this.s.learnedSkills[sk.id] || this.s.lv<sk.lv) continue;
+      this.s.learnedSkills[sk.id]=true;
+      this.s.skillLevels[sk.id]=this.s.skillLevels[sk.id]||1;
+      this.rem(k,1); used++;
+    }
+    if(used&&verbose) this.log(`自動學習技能書 ×${used}`,'green');
+    return used;
+  };
+
+  Game.runDailyAutomation=function(verbose=false){
+    this.ensure();
+    let done=0;
+    if(this.s.settings.autoDailyDungeon && (this.s.daily?.dungeon||0)>0){
+      const ds=(DB.dungeons||[]).filter(d=>this.s.lv>=d.lv && this.s.diamond>=d.cost).sort((a,b)=>b.reward-a.reward);
+      if(ds[0]){this.dungeon(ds[0].id); done++;}
+    }
+    if(this.s.settings.autoDailyBoss && (this.s.daily?.boss||0)>0){
+      const bs=(DB.bosses||[]).filter(b=>this.s.lv>=b.lv-15).sort((a,b)=>b.lv-a.lv);
+      if(bs[0]){this.boss(bs[0].id); done++;}
+    }
+    if(done&&verbose) this.log(`每日自動流程完成 ${done} 項`,'green');
+    return done;
+  };
+
+  Game.processAutomation=function(){
+    if(!this.s) return;
+    this.ensure();
+    const s=this.s, t=now();
+    if(s.settings.autoUseLeafBox && t-(s.autoRun.lastLeaf||0)>15000){s.autoRun.lastLeaf=t; this.autoUseLeafBoxes(false);}
+    if(s.settings.autoUseSkillBooks && t-(s.autoRun.lastBook||0)>20000){s.autoRun.lastBook=t; this.autoUseLearnableBooks(false);}
+    if(s.settings.autoDisassemble && t-(s.autoRun.lastDis||0)>25000){s.autoRun.lastDis=t; this.autoDisassembleByRank();}
+    if(s.settings.autoCleanBag && t-(s.autoRun.lastClean||0)>30000){s.autoRun.lastClean=t; this.mergeStackables(false);}
+    if((s.settings.autoDailyDungeon||s.settings.autoDailyBoss) && t-(s.autoRun.lastDaily||0)>60000){s.autoRun.lastDaily=t; this.runDailyAutomation(false);}
+    const saveMs=Math.max(10,finite(s.settings.autoSaveSec,30))*1000;
+    if(t-(s.autoRun.lastSave||0)>saveMs){s.autoRun.lastSave=t; this.save(false);}
+  };
+
+  const oldTick=Game.tick&&Game.tick.bind(Game);
+  Game.tick=function(){ if(oldTick) oldTick(); this.processAutomation(); };
+
+  const oldAction=Game.action&&Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='mergeBag'){this.mergeStackables(true); this.render(); return;}
+    if(a==='repairSave'){this.ensure(); this.mergeStackables(false); this.save(false); this.log('存檔健康檢查完成','green'); this.render(); return;}
+    if(a==='disRank'||a==='disN'){const batch=this.collectDisassembleBatch('N'); if(!batch.keys.length) alert('目前沒有可分解的一般未穿戴裝備。'); else this.disassembleBatch(batch.keys,true); this.render(); return;}
+    if(a==='autoLeafNow'){const n=this.autoUseLeafBoxes(true); if(!n) alert('目前不需要補葉子，或背包沒有葉子補充箱。'); this.render(); return;}
+    if(a==='learnBooksNow'){const n=this.autoUseLearnableBooks(true); if(!n) alert('沒有可自動學習的本職業技能書。'); this.render(); return;}
+    if(a==='dailyAutoNow'){const n=this.runDailyAutomation(true); if(!n) alert('目前沒有可自動執行的副本或世界王。'); this.render(); return;}
+    return oldAction?oldAction(a,arg,b):null;
+  };
+
+  const card=(label,control,desc)=>`<div class="card"><div class="row"><b>${label}</b>${control}</div>${desc?`<div class="muted mini" style="margin-top:6px">${desc}</div>`:''}</div>`;
+  Game.viewSettings=function(){
+    this.ensure(); const s=this.s.settings;
+    return `<h3 class="title">自動設定</h3>
+    <div class="grid cards">
+      ${card('自動喝水',`<input data-set="autoPotion" type="checkbox" ${s.autoPotion?'checked':''}>`,'HP 低於設定值時自動使用藥水。')}
+      ${card('HP低於%喝水',`<input data-set="hpLimit" type="number" min="1" max="99" value="${esc(s.hpLimit||45)}">`,'建議 35~60。')}
+      ${card('自動買水',`<input data-set="autoBuy" type="checkbox" ${s.autoBuy?'checked':''}>`,'藥水不足時自動購買紅水。')}
+      ${card('自動挑戰野外Boss',`<input data-set="autoBoss" type="checkbox" ${s.autoBoss?'checked':''}>`,'狩獵地圖遇到 Boss 名稱時允許自動挑戰。')}
+      ${card('自動販售一般裝備',`<input data-set="autoSell" type="checkbox" ${s.autoSell?'checked':''}>`,'已穿戴裝備會自動跳過。')}
+      ${card('自動分解',`<input data-set="autoDisassemble" type="checkbox" ${s.autoDisassemble?'checked':''}>`,'每 25 秒分解一般未穿戴裝備；+5 以上保留。')}
+      ${card('分解上限',`<select data-set="autoDisRank"><option value="N" selected>一般</option></select>`,'固定只能分解一般裝備，避免誤拆高階裝。')}
+      ${card('自動補葉子',`<input data-set="autoUseLeafBox" type="checkbox" ${s.autoUseLeafBox?'checked':''}>`,'葉子低於 80 時自動使用葉子補充箱；葉子維持無上限。')}
+      ${card('自動學技能書',`<input data-set="autoUseSkillBooks" type="checkbox" ${s.autoUseSkillBooks?'checked':''}>`,'本職業、符合等級、尚未學會的技能書會自動使用。')}
+      ${card('自動整理背包',`<input data-set="autoCleanBag" type="checkbox" ${s.autoCleanBag?'checked':''}>`,'合併藥水、卷軸、材料、技能書等可堆疊道具。')}
+      ${card('自動副本',`<input data-set="autoDailyDungeon" type="checkbox" ${s.autoDailyDungeon?'checked':''}>`,'每 60 秒嘗試執行可進入的最高收益副本。')}
+      ${card('自動世界王',`<input data-set="autoDailyBoss" type="checkbox" ${s.autoDailyBoss?'checked':''}>`,'每 60 秒嘗試挑戰符合等級的最高世界王。')}
+      ${card('自動存檔秒數',`<input data-set="autoSaveSec" type="number" min="10" max="300" value="${esc(s.autoSaveSec||30)}">`,'預設 30 秒。')}
+    </div>
+    <div class="card" style="margin-top:10px">
+      <button data-act="repairSave">存檔健康檢查</button>
+      <button data-act="mergeBag">立即整理背包</button>
+      <button data-act="disN">立即分解一般</button>
+      <button data-act="autoLeafNow">立即補葉子</button>
+      <button data-act="learnBooksNow">立即學技能書</button>
+      <button data-act="dailyAutoNow">立即跑每日</button>
+    </div>`;
+  };
+
+  const oldDash=Game.viewDash&&Game.viewDash.bind(Game);
+  Game.viewDash=function(){
+    const base=oldDash?oldDash():'';
+    this.ensure(); const s=this.s.settings;
+    const batch=this.collectDisassembleBatch('N').keys.length;
+    return base+`<div class="card"><b class="gold">自動功能</b><div class="grid stats" style="margin-top:8px">
+      <div class="stat">自動喝水<br><b class="${s.autoPotion?'green':'muted'}">${s.autoPotion?'啟用':'關閉'}</b></div>
+      <div class="stat">自動分解<br><b class="${s.autoDisassemble?'green':'muted'}">${s.autoDisassemble?'啟用':'關閉'}</b></div>
+      <div class="stat">可分解一般<br><b class="cyan">${batch}</b></div>
+      <div class="stat">自動存檔<br><b class="cyan">${esc(s.autoSaveSec||30)} 秒</b></div>
+    </div><div style="margin-top:8px"><button data-act="mergeBag">整理背包</button> <button data-act="disN">分解一般</button> <button data-act="repairSave">健康檢查</button></div></div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus&&Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){ if(oldRenderStatus) oldRenderStatus(); setTitle(); };
+  const oldRenderTab=Game.renderTab&&Game.renderTab.bind(Game);
+  Game.renderTab=function(){ const r=oldRenderTab?oldRenderTab():null; setTitle(); return r; };
+  window.LM_CORE_VERSION=V;
+  if(DB.versionHistory) DB.versionHistory.current=V;
+  window.addEventListener('DOMContentLoaded',setTitle);
+})();
+
 </script>
 </body></html>
