@@ -2627,7 +2627,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
    目標：檢查全站可自動化流程，集中補上自動分解、背包整理、材料統計、每日流程、存檔修復與批次效能優化。
    原則：不移除舊補丁，使用最後覆蓋層降低破壞既有存檔與功能的風險。 */
 (function(){
-  const VERSION='V43.1';
+  const VERSION=APP_VERSION;
   const rankValue=r=>(R&&R[r]?R[r][1]:1);
   const rankName=r=>(R&&R[r]?R[r][0]:r);
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
@@ -2832,14 +2832,14 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜V43.1 全內容自動化優化版：自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
+  window.addEventListener('DOMContentLoaded',()=>{addCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const d=document.querySelector('#start p'); if(d) d.textContent='單機HTML｜自動分解、自動補葉子、自動學技能書、自動整理背包、自動副本、世界王、自動存檔與存檔健康檢查。';});
 })();
 
 
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -3018,11 +3018,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 
@@ -3932,7 +3932,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -4111,11 +4111,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -5266,7 +5266,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -5445,11 +5445,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -5606,7 +5606,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -5785,11 +5785,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -5831,7 +5831,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.versionLabel='V41';
   document.title=APP_FULL_TITLE();
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V41';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V41';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent=APP_FULL_TITLE();
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V41 地圖圖鑑規則修正版。';
 
   Game.mapByIdV41=function(id){return (DB.maps||[]).find(m=>String(m.id)===String(id))||this.map();};
@@ -5959,7 +5959,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldRenderStatus=Game.renderStatus;
   Game.renderStatus=function(){
     oldRenderStatus.call(this);
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V41';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     const m=this.map?this.map():null, mi=this.$&&this.$('mapInfo');
     if(mi&&m){
       const p=this.mapProgressV41(m);
@@ -6046,7 +6046,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -6225,11 +6225,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -6271,7 +6271,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   Game.versionLabel='V42';
   document.title=APP_FULL_TITLE();
   const title=document.querySelector('#app .top .title'); if(title) title.textContent='天堂M Core Rebuild V42';
-  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent='天堂M Core Rebuild V42';
+  const startTitle=document.querySelector('#start h1'); if(startTitle) startTitle.textContent=APP_FULL_TITLE();
   const startDesc=document.querySelector('#start p'); if(startDesc) startDesc.textContent='單機HTML｜V42 地圖圖鑑怪物與 Boss 分類修正版。';
 
   Game.mapBossNamesV42=function(map){
@@ -6326,7 +6326,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldRenderStatus=Game.renderStatus;
   Game.renderStatus=function(){
     oldRenderStatus.call(this);
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V42';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     const m=this.map?this.map():null, mi=this.$&&this.$('mapInfo');
     if(mi&&m){
       const monsters=this.mapMonsterNamesV42(m), bosses=this.mapBossNamesV42(m);
@@ -6401,7 +6401,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
    and replaces equipment disassembly with a recipe-aware material return system. */
 (function(){
   'use strict';
-  const APP_VERSION='V43';
+  const PATCH_VERSION=APP_VERSION;
   const SAVE_KEY='lm_core_rebuild_v43_material_recycle';
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const rankValue=r=>(R[r]&&R[r][1])||1;
@@ -6413,7 +6413,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
   window.LM_CORE_VERSION=APP_VERSION;
   DB.version='core_rebuild_v43_material_recycle';
-  DB.versionHistory={current:APP_VERSION,previous:['V15.1','V16','V17','V18','V19','V21','V22','V23','V24','V25','V27','V28','V29','V30','V31','V32','V33','V37','V40','V40.1','V40.2','V41','V42'],note:'V43 consolidates public labels and adds optimized material disassembly.'};
+  DB.versionHistory={current:APP_VERSION,previous:[],note:'Current build uses central version control and optimized material disassembly.'};
 
   document.title=APP_FULL_TITLE();
   const setText=(sel,text)=>{const el=document.querySelector(sel); if(el) el.textContent=text;};
@@ -6555,13 +6555,13 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldViewAudit=Game.viewAudit.bind(Game);
   Game.viewAudit=function(){
     const materials=Object.values(DB.item).filter(i=>i.type==='material').length;
-    return oldViewAudit()+`<div class="card"><b class="gold">V43 整理檢查</b><br><span class="muted">目前版本：${APP_VERSION}<br>已整理舊版標籤為 Legacy Layer：${DB.versionHistory.previous.join('、')}<br>分解材料種類：${materials}<br>分解保護：已裝備道具不可分解/賣出；批次分解只處理未穿戴裝備。</span></div>`;
+    return oldViewAudit()+`<div class="card"><b class="gold">分解檢查</b><br><span class="muted">目前版本：${APP_VERSION}<br>分解材料種類：${materials}<br>分解保護：已裝備道具不可分解/賣出；批次分解只處理未穿戴裝備。</span></div>`;
   };
 
   const oldRenderStatus=Game.renderStatus.bind(Game);
   Game.renderStatus=function(){
     oldRenderStatus();
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43｜分解材料優化版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     const sub=this.$&&this.$('subtitle'); if(sub&&this.s) sub.textContent=(sub.textContent||'').replace(/V\d+(?:\.\d+)?/g,'V43');
   };
 
@@ -6576,7 +6576,7 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -6755,11 +6755,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
@@ -6984,11 +6984,11 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldRenderStatus=Game.renderStatus;
   Game.renderStatus=function(){
     oldRenderStatus.call(this); ensureCss();
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();});
 })();
 
 
@@ -7109,14 +7109,14 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
   const oldAudit=Game.viewAudit;
   Game.viewAudit=function(){ return oldAudit.call(this)+`<div class="card"><b class="gold">V43.3 收藏功能檢查</b><br><span class="muted">收藏總數：${(DB.codex||[]).length}｜按鈕模式已與地圖、怪物、BOSS圖鑑統一。</span></div>`; };
   const oldRenderStatus=Game.renderStatus;
-  Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版'; document.title=APP_FULL_TITLE(); };
-  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.3｜收藏按鈕優化版';});
+  Game.renderStatus=function(){ oldRenderStatus.call(this); ensureCss(); const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE(); document.title=APP_FULL_TITLE(); };
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h) h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();});
 })();
 
 /* === V43.4 DISASSEMBLE / LEAF / DIAMOND FINAL FIX ===
    修正：分解上限選項可正確切換；葉子移除上限；打怪消耗葉子並套用經驗加成；所有怪物依等級必掉隨機鑽石。 */
 (function(){
-  const VERSION='V43.4';
+  const VERSION=APP_VERSION;
   const equipTypes=['weapon','helmet','tshirt','armor','cloak','gloves','boots','amulet','belt','earring','ring','rune','seal','relic'];
   const rankValue=r=>(window.R&&R[r]?R[r][1]:1);
   const rankName=r=>(window.R&&R[r]?R[r][0]:r);
@@ -7295,18 +7295,18 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
       const prof=leafProfile(this), max=leafMax(this), val=Math.max(0,Number(this.s.leaf)||0), p=Math.max(0,Math.min(100,val/max*100));
       const bar=this.$('leafBar'), txt=this.$('leafTxt'); if(bar) bar.style.width=p+'%'; if(txt) txt.textContent=`${num(val)}｜無上限｜EXP x${prof.exp}｜消耗中`;
     }
-    const t=document.querySelector('#app .top .title'); if(t) t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=APP_FULL_TITLE();
     document.title=APP_FULL_TITLE();
   };
 
-  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent='天堂M Core Rebuild V43.4｜葉子鑽石分解修復版';document.title=APP_FULL_TITLE();});
+  window.addEventListener('DOMContentLoaded',()=>{const h=document.querySelector('#start h1');if(h)h.textContent=APP_FULL_TITLE();const t=document.querySelector('#app .top .title');if(t)t.textContent=APP_FULL_TITLE();document.title=APP_FULL_TITLE();});
 })();
 
 </script>
 
 
 
-<!-- === V43.5 MONSTER CODEX CLASSIFICATION + MULTI MONSTER + AOE SKILL FIX === -->
+<!-- === MONSTER CODEX CLASSIFICATION + MULTI MONSTER + AOE SKILL FIX === -->
 <script>
 (function(){
   if(!window.Game || !window.DB) return;
@@ -7543,4 +7543,103 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 })();
 </script>
 
+
+<!-- === V44 REQUESTED MONSTER / BOSS / MULTI-MOB SAFETY PATCH === -->
+<script>
+(function(){
+  if(!window.Game||!window.DB) return;
+  const isBossNameV44=(name)=>{
+    const n=String(name||'');
+    const bossList=(DB.bosses||[]).map(b=>String(b.name));
+    return bossList.includes(n)||/[王龍巫妖安塔巴拉法利昂林德拜爾吉爾塔斯死亡騎士木乃伊]/.test(n);
+  };
+  const normalNamesV44=()=>[...new Set((DB.maps||[]).flatMap(m=>(m.mons||[]).filter(n=>!isBossNameV44(n))))].sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  const bossNamesV44=()=>[...new Set([...(DB.bosses||[]).map(b=>b.name),...(DB.maps||[]).flatMap(m=>(m.mons||[]).filter(isBossNameV44))])];
+  const aliveV44=(g)=>((g.s&&g.s.mobs)||[]).filter(m=>m&&m.hp>0);
+  const syncV44=(g)=>{const a=aliveV44(g); if(g.s){g.s.mobs=a; g.s.mon=a[0]||null;}};
+  const escV44=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){oldEnsure(); if(!this.s) return; this.s.mobs=aliveV44(this); this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{}; bossNamesV44().forEach(n=>{if(this.s.codexMon[n]){this.s.codexBoss[n]=(this.s.codexBoss[n]||0)+this.s.codexMon[n]; delete this.s.codexMon[n];}});};
+  Game.spawn=function(forceName){
+    this.ensure();
+    const m=this.map(), base=(m.mons||[]).filter(n=>forceName?String(n)===String(forceName):true);
+    const pool=base.length?base:(m.mons||[]);
+    const lvGap=Math.max(0,(this.s.lv||1)-(m.min||1));
+    const maxCount=(this.s.multiMobSettings&&this.s.multiMobSettings.enabled===false)?1:Math.min(5,1+Math.floor(lvGap/18)+((this.s.lv||1)>=50?1:0));
+    const count=forceName?1:this.rand(1,Math.max(1,maxCount));
+    this.s.mobs=[];
+    for(let i=0;i<count;i++){
+      const name=pool[this.rand(0,pool.length-1)]||'怪物';
+      const lv=this.rand(m.min||1,m.max||1);
+      const boss=isBossNameV44(name);
+      const hp=Math.floor((boss?1200:120)+lv*(boss?70:22));
+      this.s.mobs.push({name,lv,boss,hp,max:hp});
+    }
+    syncV44(this);
+    if(this.blog) this.blog('遭遇 '+this.s.mobs.map(x=>escV44(x.name)+(x.boss?' BOSS':'')).join('、'));
+  };
+  Game.castAuto=function(){
+    const mobs=aliveV44(this); if(!mobs.length) return;
+    const arr=(this.s.settings&&this.s.settings.autoSkills)||[];
+    for(const id of arr){
+      const sk=DB.skills[id];
+      if(!sk||!this.s.learnedSkills[id]||sk.type==='passive'||this.s.mp<(sk.mp||0)) continue;
+      const lv=this.s.skillLevels[id]||1, aw=this.s.skillAwake[id]?1.3:1;
+      this.s.mp-=sk.mp;
+      const aoe=/雨|風暴|流星|暴雷|領域|旋風|箭雨|爆裂|落下|火球|雷|龍炎/.test(sk.name)||sk.rank==='L'||sk.rank==='M';
+      const targets=aoe?mobs.slice(0,Math.min(mobs.length,2+Math.floor(lv/2))):[mobs[0]];
+      if(sk.type==='active'){
+        const base=Math.floor((sk.power+lv*22+this.total().int*3)*aw);
+        targets.forEach((m,i)=>m.hp-=Math.max(1,Math.floor(base*(i?0.72:1))));
+        if(this.blog) this.blog(`<span class="cyan">${aoe?'範圍技能':'技能'} ${escV44(sk.name)}</span> 攻擊 ${targets.length} 隻怪物`);
+      }else{
+        this.s.hp=Math.min(this.maxHp(),this.s.hp+Math.floor((50+lv*18)*aw));
+        if(this.blog) this.blog(`<span class="green">自動施放 ${escV44(sk.name)}</span>`);
+      }
+      syncV44(this);
+      return;
+    }
+  };
+  Game.fight=function(){
+    this.ensure(); if(!aliveV44(this).length) this.spawn();
+    this.castAuto(); let mobs=aliveV44(this); if(!mobs.length){syncV44(this);return;}
+    const st=this.total();
+    const leafOn=(Number(this.s.leaf)||0)>0;
+    const bonus=leafOn?1.25:1;
+    if(leafOn) this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-0.03);
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    mobs[0].hp-=dmg;
+    if(mobs[1]&&(st.spd||0)>=25){const splash=Math.floor(dmg*.35); mobs[1].hp-=splash; if(this.blog)this.blog(`普攻 ${escV44(mobs[0].name)} ${dmg}，濺射 ${escV44(mobs[1].name)} ${splash}`);}
+    else if(this.blog)this.blog(`造成 ${dmg} 傷害給 ${escV44(mobs[0].name)}`);
+    (this.s.mobs||[]).filter(m=>m.hp<=0).forEach(m=>this.kill(m,bonus,true));
+    mobs=aliveV44(this); syncV44(this); if(!mobs.length) return;
+    let take=0; mobs.forEach((m,i)=>take+=Math.max(1,Math.floor((m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0))*(i===0?1:.45))));
+    this.s.hp-=take; if(this.blog)this.blog(`受到 ${mobs.length} 隻怪物圍攻，傷害 ${take}`);
+    if(this.s.hp<=0){this.s.hp=this.maxHp()*.55;this.s.exp=Math.max(0,this.s.exp-this.need()*.02);this.s.mobs=[];this.s.mon=null;if(this.blog)this.blog('<span class="red">瀕死回城，損失少量經驗</span>');}
+  };
+  const oldKill=Game.kill.bind(Game);
+  Game.kill=function(m,bonus,silent){
+    if(!m) return;
+    this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{};
+    if(isBossNameV44(m.name)||m.boss) this.s.codexBoss[m.name]=(this.s.codexBoss[m.name]||0)+1;
+    else this.s.codexMon[m.name]=(this.s.codexMon[m.name]||0)+1;
+    const before=this.s.mobs;
+    oldKill(m,bonus,silent);
+    this.s.mobs=(before||[]).filter(x=>x!==m&&x.hp>0);
+    if(this.s.mon===m) this.s.mon=this.s.mobs[0]||null;
+    syncV44(this);
+  };
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){oldRenderStatus(); syncV44(this); const mobs=aliveV44(this); const n=this.$('monsterName'); if(n&&mobs.length)n.innerHTML=`${mobs.length} 隻怪物｜主目標：${escV44(mobs[0].name)}`; const t=document.querySelector('#app .top .title'); if(t)t.textContent=APP_FULL_TITLE(); document.title=APP_FULL_TITLE();};
+  const oldViewMonster=Game.viewMonsterBookV23||Game.viewMonsterBook;
+  Game.viewMonsterBookV23=function(){
+    this.ensure();
+    const names=normalNamesV44();
+    const rows=names.map(n=>{const k=this.s.codexMon?.[n]||0; const maps=(DB.maps||[]).filter(m=>(m.mons||[]).includes(n)); return `<div class="card item"><div class="row"><b class="gold">${escV44(n)}</b><span class="muted">一般怪物｜擊殺 ${k}/100</span></div><div class="muted">出沒地圖：${maps.map(m=>m.name).join('、')||'無'}</div></div>`;}).join('');
+    return `<h3 class="title">怪物圖鑑</h3><div class="card"><b class="green">分類已修復</b><br><span class="muted">Boss 不再混入怪物圖鑑，Boss 擊殺會歸入 Boss 圖鑑。</span></div>${rows}`;
+  };
+  Game.viewMonsterBook=Game.viewMonsterBookV23;
+  window.addEventListener('DOMContentLoaded',()=>{document.title=APP_FULL_TITLE(); const h=document.querySelector('#start h1'); if(h)h.textContent=APP_FULL_TITLE(); const t=document.querySelector('#app .top .title'); if(t)t.textContent=APP_FULL_TITLE();});
+})();
+</script>
 </body></html>
