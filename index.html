@@ -7224,4 +7224,243 @@ document.addEventListener('DOMContentLoaded',()=>Game.init());
 
 </script>
 
+
+
+<!-- === V43.5 MONSTER CODEX CLASSIFICATION + MULTI MONSTER + AOE SKILL FIX === -->
+<script>
+(function(){
+  if(!window.Game || !window.DB) return;
+  const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const num=n=>Math.floor(Number(n)||0).toLocaleString();
+  const uniq=a=>[...new Set((a||[]).filter(Boolean))];
+  const bossNameSet=()=>new Set((DB.bosses||[]).map(b=>String(b.name||'')));
+  const bossRe=/王|Boss|BOSS|首領|君主|巨大|飛龍王|安塔|巴拉|法利|林德|吉爾|巴風|死亡騎士$|巫妖$|木乃伊王|吸血鬼$|巨蟻女皇|不死鳥|惡魔王|克特|賽尼斯|冰之女王|騎士范德|反王肯恩|海露拜/i;
+  const itemName=id=>(DB.item&&DB.item[id]&&DB.item[id].name)||id;
+  const oldTitle='天堂M Core Rebuild V43.5｜多怪與範圍技能修正版';
+
+  function ensureCss(){
+    if(document.getElementById('v435MultiMobCss')) return;
+    const css=document.createElement('style'); css.id='v435MultiMobCss';
+    css.textContent=`
+      .mob-v435-list{display:grid;gap:6px;margin-top:8px}.mob-v435-row{background:#07101d;border:1px solid #26364e;border-radius:10px;padding:7px}.mob-v435-row.main{border-color:#facc15}.mob-v435-row b{color:#fca5a5}.mob-v435-hp{height:13px;background:#020617;border:1px solid #334155;border-radius:99px;overflow:hidden;margin-top:5px}.mob-v435-hp i{display:block;height:100%;background:linear-gradient(90deg,#7f1d1d,#ef4444)}
+      .codex-v435-card{background:#081120;border:1px solid #26364e;border-radius:13px;padding:12px}.codex-v435-card.done{border-color:var(--gold);background:#16180d}.codex-v435-card.ready{border-color:#fca5a5;background:#1a1014}.codex-v435-card.active{border-color:#60a5fa}.codex-v435-progress{height:22px;background:#030814;border:1px solid #41516a;border-radius:99px;overflow:hidden;position:relative;margin:10px 0}.codex-v435-progress span{display:block;height:100%;background:linear-gradient(90deg,#1e3a8a,#22c55e,#facc15)}.codex-v435-progress b{position:absolute;inset:0;text-align:center;line-height:20px;font-size:12px;text-shadow:1px 1px 2px #000}.codex-v435-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.codex-v435-sub{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:var(--muted);font-size:12px;margin-bottom:8px}`;
+    document.head.appendChild(css);
+  }
+  function isBossName(name){
+    const n=String(name||'');
+    if(bossNameSet().has(n)) return true;
+    return bossRe.test(n);
+  }
+  function normalMonsterNames(){
+    return uniq((DB.maps||[]).flatMap(m=>m.mons||[]).filter(n=>!isBossName(n))).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  }
+  function bossNames(){
+    const fromBoss=(DB.bosses||[]).map(b=>b.name);
+    const fromMap=uniq((DB.maps||[]).flatMap(m=>m.mons||[]).filter(isBossName));
+    const fromSave=Object.keys((Game.s&&Game.s.codexBoss)||{});
+    return uniq(fromBoss.concat(fromMap).concat(fromSave)).sort((a,b)=>String(a).localeCompare(String(b),'zh-Hant'));
+  }
+  function monsterMaps(name){return (DB.maps||[]).filter(m=>(m.mons||[]).includes(name));}
+  function monsterDrops(name){return uniq(monsterMaps(name).flatMap(m=>(m.drops||[]).concat(m.materialDrops||[]))).slice(0,12);}
+  function bossData(name){return (DB.bosses||[]).find(b=>b.name===name)||null;}
+  function bossMaps(name){
+    const b=bossData(name);
+    let maps=(DB.maps||[]).filter(m=>(m.mons||[]).includes(name));
+    if(!maps.length && b) maps=(DB.maps||[]).filter(m=>Math.abs((m.min||0)-(b.lv||0))<=12).slice(0,3);
+    return maps;
+  }
+  function firstMapFor(name,boss){const m=(boss?bossMaps(name):monsterMaps(name))[0]; return m&&m.id;}
+  function mobMaxHp(name,lv,boss){return Math.floor((boss?1200:120)+lv*(boss?70:22));}
+  function rollMob(game, forcedName){
+    const map=game.map();
+    const names=(map.mons||[]).length?map.mons:['哥布林'];
+    const name=forcedName || names[game.rand(0,names.length-1)];
+    const boss=isBossName(name);
+    const lv=game.rand(map.min||1,map.max||Math.max(1,game.s.lv||1));
+    const hp=mobMaxHp(name,lv,boss);
+    return {name,lv,boss,hp,max:hp,map:map.id};
+  }
+  function encounterCount(game){
+    const lv=Number(game.s?.lv)||1;
+    const base=lv>=80?4:lv>=55?3:lv>=25?2:1;
+    const chance=lv>=75?.45:lv>=45?.30:.18;
+    return Math.min(5,base+(Math.random()<chance?1:0));
+  }
+  function aliveMobs(game){return (game.s?.mobs||[]).filter(m=>m&&m.hp>0);}
+  function syncMainMon(game){
+    const list=aliveMobs(game);
+    game.s.mobs=list;
+    game.s.mon=list[0]||null;
+  }
+  function isAoeSkill(sk){
+    const n=String(sk?.name||'');
+    if(sk&&sk.aoe) return true;
+    return /流星|火球|暴風|風暴|月光箭雨|箭雨|閃電鏈|天雷|暴雷|雷霆|旋風|領域|爆發|龍炎|岩漿|聖槍風暴|死神降臨|終焉|骷髏毀壞|究極光裂|地震|範圍/i.test(n);
+  }
+  function applyCodexKill(game,m){
+    game.s.codexMon=game.s.codexMon||{}; game.s.codexBoss=game.s.codexBoss||{};
+    if(isBossName(m.name)||m.boss) game.s.codexBoss[m.name]=(game.s.codexBoss[m.name]||0)+1;
+    else game.s.codexMon[m.name]=(game.s.codexMon[m.name]||0)+1;
+    game.s.mapMonsterSeen=game.s.mapMonsterSeen||{}; game.s.mapMonsterSeen[m.map||game.s.map]=game.s.mapMonsterSeen[m.map||game.s.map]||{}; game.s.mapMonsterSeen[m.map||game.s.map][m.name]=true;
+  }
+
+  const oldEnsure=Game.ensure.bind(Game);
+  Game.ensure=function(){
+    oldEnsure(); if(!this.s) return; ensureCss();
+    this.s.mobs=Array.isArray(this.s.mobs)?this.s.mobs:[];
+    this.s.codexFilter=this.s.codexFilter||{monster:'all',boss:'all'};
+    this.s.codexSort=this.s.codexSort||{monster:'progress',boss:'progress'};
+    this.s.multiMobSettings=Object.assign({enabled:true,max:5,aoe:true},this.s.multiMobSettings||{});
+    // 修復舊存檔：Boss 擊殺誤進怪物圖鑑時，自動轉移到 Boss 圖鑑。
+    this.s.codexMon=this.s.codexMon||{}; this.s.codexBoss=this.s.codexBoss||{};
+    Object.keys(this.s.codexMon).forEach(n=>{ if(isBossName(n)){ this.s.codexBoss[n]=(this.s.codexBoss[n]||0)+(this.s.codexMon[n]||0); delete this.s.codexMon[n]; }});
+  };
+
+  Game.spawn=function(forcedName){
+    this.ensure();
+    const count=forcedName?1:encounterCount(this);
+    this.s.mobs=[];
+    for(let i=0;i<count;i++) this.s.mobs.push(rollMob(this,i===0?forcedName:null));
+    syncMainMon(this);
+    const names=this.s.mobs.map(m=>`${m.name}${m.boss?'(Boss)':''}`).join('、');
+    this.blog(`遭遇 ${this.s.mobs.length} 隻怪物：${esc(names)}`);
+  };
+
+  Game.castAuto=function(){
+    const arr=this.s.settings?.autoSkills||[];
+    const mobs=aliveMobs(this); if(!mobs.length) return;
+    for(const id of arr){
+      const sk=DB.skills[id];
+      if(!sk||!this.s.learnedSkills[id]||sk.type==='passive'||this.s.mp<(sk.mp||0)) continue;
+      const lv=this.s.skillLevels[id]||1, aw=this.s.skillAwake[id]?1.3:1;
+      this.s.mp-=sk.mp;
+      if(sk.type==='active'){
+        const base=Math.floor((sk.power+lv*22+this.total().int*3)*aw);
+        if(this.s.multiMobSettings.aoe && isAoeSkill(sk)){
+          const targets=mobs.slice(0,Math.max(2,Math.min(5,mobs.length)));
+          targets.forEach((m,i)=>{m.hp-=Math.max(1,Math.floor(base*(i===0?1:.72)));});
+          this.blog(`<span class="cyan">範圍技能 ${esc(sk.name)}</span> 命中 ${targets.length} 隻怪物`);
+        }else{
+          mobs[0].hp-=base;
+          this.blog(`<span class="cyan">自動施放 ${esc(sk.name)}</span>，造成 ${base} 傷害`);
+        }
+      }else{
+        this.s.hp=Math.min(this.maxHp(),this.s.hp+Math.floor((50+lv*18)*aw));
+        this.blog(`<span class="green">自動施放 ${esc(sk.name)}</span>`);
+      }
+      syncMainMon(this);
+      return;
+    }
+  };
+
+  Game.fight=function(){
+    this.ensure();
+    if(!aliveMobs(this).length) this.spawn();
+    this.castAuto();
+    let mobs=aliveMobs(this);
+    if(!mobs.length){syncMainMon(this); return;}
+    const st=this.total();
+    const prof=(typeof leafProfile==='function')?leafProfile(this):{exp:1,consume:0};
+    if((Number(this.s.leaf)||0)>0) this.s.leaf=Math.max(0,(Number(this.s.leaf)||0)-(prof.consume||0.03));
+
+    // 普攻打主要目標；攻速高時追加濺射第二目標。
+    const dmg=Math.max(1,Math.floor((st.dmg+this.s.lv*2+st.str*1.5+st.dex*.6)*(1+(st.spd||0)/100)));
+    mobs[0].hp-=dmg;
+    if(mobs[1] && (st.spd||0)>=25){mobs[1].hp-=Math.floor(dmg*.35); this.blog(`普攻 ${esc(mobs[0].name)} ${dmg}，濺射 ${esc(mobs[1].name)} ${Math.floor(dmg*.35)}`);} else this.blog(`造成 ${dmg} 傷害給 ${esc(mobs[0].name)}`);
+
+    // 結算死亡怪物，可一次殺多隻。
+    const dead=(this.s.mobs||[]).filter(m=>m.hp<=0);
+    if(dead.length){ dead.forEach(m=>this.kill(m,prof.exp||1,true)); }
+    mobs=aliveMobs(this); syncMainMon(this);
+    if(!mobs.length) return;
+
+    // 多怪圍攻，但傷害有遞減避免太容易暴斃。
+    let take=0;
+    mobs.forEach((m,i)=>{ take+=Math.max(1,Math.floor((m.lv*1.2+(m.boss?40:8)-(10-st.ac)*1.4-(st.dr||0))*(i===0?1:.45))); });
+    this.s.hp-=take;
+    this.blog(`受到 ${mobs.length} 隻怪物圍攻，傷害 ${take}`);
+    if(this.s.hp<=0){
+      this.s.hp=this.maxHp()*.55; this.s.exp=Math.max(0,this.s.exp-this.need()*.02); this.s.mon=null; this.s.mobs=[];
+      this.blog('<span class="red">瀕死回城，損失少量經驗</span>');
+    }
+  };
+
+  const oldKill=Game.kill.bind(Game);
+  Game.kill=function(m,bonus,silentMulti){
+    if(!m) return;
+    applyCodexKill(this,m);
+    // 使用 V43.4 必掉鑽石與原始獎勵邏輯；避免 oldKill 把整組 mobs 清空，這裡自行結算。
+    this.s.ach.kills++; this.s.daily.kills++; if(m.boss||isBossName(m.name)) this.s.ach.boss++;
+    const exp=Math.floor((20+m.lv*m.lv*1.6)*(m.boss?3:1)*(bonus||1));
+    const ad=this.rand(m.lv*20,m.lv*(m.boss?220:55));
+    this.s.exp+=exp; this.s.adena+=ad;
+    const drops=this.map().drops||[];
+    if(drops.length && Math.random()<.42){const id=drops[this.rand(0,drops.length-1)]; this.addItem(id,1,0); this.log('掉落：'+(this.def(id)?.name||id),'green');}
+    if(this.dropDiamond) this.dropDiamond(m); if(this.checkDiamondQuest) this.checkDiamondQuest(); if(this.level) this.level(); if(this.autoSell) this.autoSell();
+    this.s.mobs=(this.s.mobs||[]).filter(x=>x!==m && x.hp>0); syncMainMon(this);
+    if(!silentMulti) this.render();
+  };
+
+  const oldAction=Game.action.bind(Game);
+  Game.action=function(a,arg,b){
+    if(a==='monsterBookFilterV435'){this.ensure();this.s.codexFilter.monster=arg||'all';this.renderTab();return;}
+    if(a==='monsterBookSortV435'){this.ensure();this.s.codexSort.monster=arg||'progress';this.renderTab();return;}
+    if(a==='goMonsterMapV435'){const id=firstMapFor(arg,false); if(id){this.s.map=id; this.s.mobs=[]; this.s.mon=null; this.render();}else alert('找不到此怪物地圖'); return;}
+    if(a==='targetMonsterV435'){const id=firstMapFor(arg,false); if(id) this.s.map=id; this.spawn(arg); this.log('怪物圖鑑指定目標：'+arg,'green'); this.render(); return;}
+    if(a==='multiMobToggleV435'){this.ensure(); this.s.multiMobSettings.enabled=!this.s.multiMobSettings.enabled; this.render(); return;}
+    return oldAction(a,arg,b);
+  };
+
+  Game.viewMonsterBookV23=function(){
+    this.ensure(); ensureCss();
+    const filter=this.s.codexFilter?.monster||'all', sort=this.s.codexSort?.monster||'progress';
+    const all=normalMonsterNames();
+    const filters=[['all','全部'],['current','目前地圖'],['unseen','未登錄'],['ready','可領獎'],['claimed','已完成']];
+    const sorts=[['progress','進度'],['kills','擊殺'],['level','地圖等級'],['name','名稱']];
+    let list=all.filter(n=>{
+      const k=this.s.codexMon?.[n]||0, ready=k>=100&&!this.s.claimed?.['mon_'+n], claimed=!!this.s.claimed?.['mon_'+n];
+      if(filter==='current') return (this.map().mons||[]).includes(n) && !isBossName(n);
+      if(filter==='unseen') return k<=0;
+      if(filter==='ready') return ready;
+      if(filter==='claimed') return claimed;
+      return true;
+    });
+    list.sort((a,b)=>{const ka=this.s.codexMon?.[a]||0,kb=this.s.codexMon?.[b]||0; if(sort==='kills')return kb-ka; if(sort==='level')return ((monsterMaps(a)[0]?.min)||999)-((monsterMaps(b)[0]?.min)||999); if(sort==='name')return String(a).localeCompare(String(b),'zh-Hant'); return Math.min(100,kb)-Math.min(100,ka);});
+    const done=all.filter(n=>(this.s.codexMon?.[n]||0)>=100).length;
+    const ready=all.filter(n=>(this.s.codexMon?.[n]||0)>=100&&!this.s.claimed?.['mon_'+n]).length;
+    const totalKills=Object.entries(this.s.codexMon||{}).filter(([n])=>!isBossName(n)).reduce((a,[,b])=>a+(Number(b)||0),0);
+    const rows=list.map(n=>{const k=this.s.codexMon?.[n]||0,pct=Math.min(100,Math.floor(k)),claimed=!!this.s.claimed?.['mon_'+n],can=k>=100&&!claimed,maps=monsterMaps(n),first=maps[0]; const drops=monsterDrops(n).map(id=>`<span class="pill">${esc(itemName(id))}</span>`).join('')||'<span class="muted">無掉落資料</span>'; const mapPills=maps.slice(0,8).map(m=>`<span class="pill ${m.id===this.s.map?'blue':''}">${esc(m.name)} Lv.${m.min}-${m.max}</span>`).join('')||'<span class="muted">無地圖資料</span>'; return `<div class="codex-v435-card ${claimed?'done':can?'ready':k>0?'active':''}"><div class="row"><div><b class="gold">${esc(n)}</b> ${claimed?'<span class="pill green">已完成</span>':can?'<span class="pill red">可領獎</span>':k>0?'<span class="pill blue">已登錄</span>':'<span class="pill muted">未登錄</span>'}<br><span class="muted">分類：一般怪物｜擊殺 ${num(k)}/100｜主要地圖：${first?esc(first.name):'無'}</span></div><div class="codex-v435-actions"><button data-act="goMonsterMapV435" data-arg="${esc(n)}" ${first?'':'disabled'}>前往</button><button data-act="targetMonsterV435" data-arg="${esc(n)}" ${first?'':'disabled'}>指定目標</button><button data-act="claimMonBook" data-arg="${esc(n)}" ${can?'':'disabled'}>領取</button></div></div><div class="codex-v435-progress"><span style="width:${pct}%"></span><b>${pct}%</b></div><div class="codex-v435-sub"><span>擊殺 ${num(k)}</span><span>出沒地圖 ${maps.length}</span><span>掉落 ${monsterDrops(n).length}</span></div><details><summary>地圖 / 掉落</summary><div class="drop-box"><b>出沒地圖</b>${mapPills}</div><div class="drop-box"><b>掉落</b>${drops}</div></details></div>`;}).join('');
+    const current=(this.map().mons||[]).filter(n=>!isBossName(n)).length;
+    return this.hero('怪物圖鑑 V43.5','已修復分類異常：Boss 不再混入怪物圖鑑；舊存檔誤分類擊殺會自動轉回 Boss 圖鑑。')+this.statCards([['一般怪物',all.length,'gold'],['目前地圖怪物',current,'cyan'],['可領獎',ready,'red'],['已完成',done+'/'+all.length,'green'],['總擊殺',num(totalKills),'blue']])+`<div class="tabs page-tabs">${filters.map(([id,n])=>`<button class="tab ${filter===id?'on':''}" data-act="monsterBookFilterV435" data-arg="${id}">${n}</button>`).join('')}</div><div class="tabs page-tabs">${sorts.map(([id,n])=>`<button class="tab ${sort===id?'on':''}" data-act="monsterBookSortV435" data-arg="${id}">排序：${n}</button>`).join('')}</div><div class="page-list">${rows||'<p class="muted">沒有符合條件的怪物</p>'}</div>`;
+  };
+
+  const oldRenderStatus=Game.renderStatus.bind(Game);
+  Game.renderStatus=function(){
+    oldRenderStatus(); ensureCss();
+    const mobs=aliveMobs(this);
+    const nameEl=this.$('monsterName');
+    if(nameEl){
+      if(mobs.length){nameEl.innerHTML=`${mobs.length} 隻怪物｜主目標：${esc(mobs[0].name)}`;} else nameEl.textContent='尋找中';
+    }
+    const monPanel=nameEl&&nameEl.parentElement;
+    if(monPanel){
+      let box=document.getElementById('mobListV435');
+      if(!box){box=document.createElement('div');box.id='mobListV435';box.className='mob-v435-list';monPanel.appendChild(box);} 
+      box.innerHTML=mobs.map((m,i)=>{const pct=Math.max(0,Math.min(100,(m.hp||0)/(m.max||1)*100));return `<div class="mob-v435-row ${i===0?'main':''}"><div class="row"><b>${esc(m.name)}${m.boss?' BOSS':''}</b><span>Lv.${m.lv}</span></div><div class="mob-v435-hp"><i style="width:${pct}%"></i></div><div class="mini muted">HP ${num(Math.max(0,m.hp))}/${num(m.max)}</div></div>`;}).join('');
+    }
+    const t=document.querySelector('#app .top .title'); if(t) t.textContent=oldTitle; document.title=oldTitle;
+  };
+
+  const oldViewHunt=Game.viewHunt.bind(Game);
+  Game.viewHunt=function(){
+    return `<h3 class="title">狩獵設定</h3><div class="card"><b class="cyan">V43.5 多怪 / 範圍技能</b><br><span class="muted">現在每次遭遇會依角色等級出現 1~5 隻怪物。普攻鎖定主目標；部分技能已實裝範圍判定，可同時攻擊多隻怪物。怪物圖鑑分類已排除 Boss。</span></div>`+oldViewHunt.call(this).replace('<h3 class="title">狩獵設定</h3>','');
+  };
+  const oldViewDash=Game.viewDash.bind(Game);
+  Game.viewDash=function(){return oldViewDash()+`<div class="card"><b class="gold">V43.5 戰鬥核心</b><br><span class="muted">多怪遭遇已實裝｜範圍技能已生效｜怪物圖鑑分類已修復。</span></div>`;};
+  const oldAudit=Game.viewAudit.bind(Game);
+  Game.viewAudit=function(){return oldAudit()+`<div class="card"><b class="gold">V43.5 檢查</b><br><span class="muted">一般怪物：${normalMonsterNames().length}｜Boss：${bossNames().length}｜多怪上限：5｜範圍技能判定：已啟用。</span></div>`;};
+  window.addEventListener('DOMContentLoaded',()=>{ensureCss(); document.title=oldTitle; const h=document.querySelector('#start h1'); if(h) h.textContent='天堂M Core Rebuild V43.5'; const t=document.querySelector('#app .top .title'); if(t) t.textContent=oldTitle;});
+})();
+</script>
+
 </body></html>
